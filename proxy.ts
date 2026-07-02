@@ -3,7 +3,7 @@ import { getToken } from "next-auth/jwt";
 
 import { authSecret } from "@/features/auth/server/auth-config";
 
-export async function proxy(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   const token = await getToken({
     req: request,
     secret: authSecret,

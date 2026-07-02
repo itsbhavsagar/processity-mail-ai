@@ -35,7 +35,7 @@ export function AppHeader() {
 
         <button
           aria-label="User profile"
-          className="ml-auto inline-flex size-9 items-center justify-center rounded-full border border-border bg-muted text-sm font-medium text-muted-foreground"
+          className="ml-auto inline-flex size-9 cursor-pointer items-center justify-center rounded-full border border-border bg-muted text-sm font-medium text-muted-foreground"
         >
           U
         </button>

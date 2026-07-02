@@ -1,8 +1,8 @@
-import {
-  normalizeThread,
-  type GmailThreadResponse,
-} from "@/features/gmail/mappers/normalize-thread";
-import type { MailThread } from "@/features/gmail/types/mail-thread";
+import { normalizeConversation } from "@/features/gmail/mappers/normalize-conversation";
+import { normalizeThread } from "@/features/gmail/mappers/normalize-thread";
+import type { GmailThreadResponse } from "@/features/gmail/types/gmail-api";
+import type { MailConversation } from "@/features/mail/types/mail-conversation";
+import type { MailThread } from "@/features/mail/types/mail-thread";
 
 const GMAIL_API_BASE = "https://gmail.googleapis.com/gmail/v1/users/me";
 const INBOX_THREAD_LIMIT = 20;
@@ -46,4 +46,16 @@ export async function listInbox(accessToken: string): Promise<MailThread[]> {
   );
 
   return threadResponses.map(normalizeThread);
+}
+
+export async function getConversation(
+  accessToken: string,
+  conversationId: string,
+): Promise<MailConversation> {
+  const thread = await gmailFetch<GmailThreadResponse>(
+    `/threads/${conversationId}?format=full`,
+    accessToken,
+  );
+
+  return normalizeConversation(thread);
 }

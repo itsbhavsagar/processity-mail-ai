@@ -1,11 +1,20 @@
 import { getServerSession } from "next-auth";
 
 import { authConfig } from "@/features/auth/server/auth-config";
-import { listInbox } from "@/features/gmail/services/gmail-service";
+import {
+  getConversation,
+  listInbox,
+} from "@/features/gmail/services/gmail-service";
+import type { MailConversation } from "@/features/mail/types/mail-conversation";
+import type { MailThread } from "@/features/mail/types/mail-thread";
 
-import { InboxThreadList } from "./inbox-thread-list";
+import { InboxWorkspaceClient } from "./inbox-workspace-client";
 
-export async function InboxWorkspace() {
+interface InboxWorkspaceProps {
+  conversationId?: string;
+}
+
+export async function InboxWorkspace({ conversationId }: InboxWorkspaceProps) {
   const session = await getServerSession(authConfig);
 
   if (!session?.accessToken) {
@@ -18,7 +27,7 @@ export async function InboxWorkspace() {
     );
   }
 
-  let threads;
+  let threads: MailThread[];
 
   try {
     threads = await listInbox(session.accessToken);
@@ -32,5 +41,26 @@ export async function InboxWorkspace() {
     );
   }
 
-  return <InboxThreadList threads={threads} />;
+  let conversation: MailConversation | null = null;
+  let conversationError = false;
+
+  if (conversationId) {
+    try {
+      conversation = await getConversation(
+        session.accessToken,
+        conversationId,
+      );
+    } catch {
+      conversationError = true;
+    }
+  }
+
+  return (
+    <InboxWorkspaceClient
+      threads={threads}
+      conversation={conversation}
+      conversationError={conversationError}
+      conversationId={conversationId}
+    />
+  );
 }

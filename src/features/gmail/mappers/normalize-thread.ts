@@ -1,26 +1,10 @@
-import type { MailThread } from "@/features/gmail/types/mail-thread";
+import type { GmailThreadResponse } from "@/features/gmail/types/gmail-api";
+import type { MailThread } from "@/features/mail/types/mail-thread";
 
-interface GmailHeader {
-  name: string;
-  value: string;
-}
-
-interface GmailMessage {
-  id: string;
-  snippet?: string;
-  labelIds?: string[];
-  payload?: {
-    headers?: GmailHeader[];
-  };
-}
-
-export interface GmailThreadResponse {
-  id: string;
-  snippet?: string;
-  messages?: GmailMessage[];
-}
-
-function getHeader(headers: GmailHeader[], name: string): string {
+function getHeader(
+  headers: Array<{ name: string; value: string }>,
+  name: string,
+): string {
   return (
     headers.find((header) => header.name.toLowerCase() === name.toLowerCase())
       ?.value ?? ""

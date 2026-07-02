@@ -8,3 +8,5 @@ export {
   CardHeader,
   CardTitle,
 } from "./card";
+export { Separator } from "./separator";
+export { Skeleton } from "./skeleton";

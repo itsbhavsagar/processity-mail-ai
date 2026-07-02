@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import { sendEmail } from "@/features/mail/actions/send-email";
 import {
@@ -17,17 +18,34 @@ import {
   Textarea,
 } from "@/shared/ui";
 
+export interface ComposeDraftFields {
+  to: string;
+  subject: string;
+  body: string;
+}
+
+export const emptyComposeDraft: ComposeDraftFields = {
+  to: "",
+  subject: "",
+  body: "",
+};
+
 interface ComposeEmailDialogProps {
   open: boolean;
+  draft: ComposeDraftFields;
+  onDraftChange: (draft: ComposeDraftFields) => void;
   onOpenChange: (open: boolean) => void;
+  onSent?: () => void;
 }
 
 export function ComposeEmailDialog({
   open,
+  draft,
+  onDraftChange,
   onOpenChange,
+  onSent,
 }: ComposeEmailDialogProps) {
   const router = useRouter();
-  const formRef = useRef<HTMLFormElement>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -38,28 +56,51 @@ export function ComposeEmailDialog({
 
     if (!nextOpen) {
       setErrorMessage(null);
-      formRef.current?.reset();
     }
 
     onOpenChange(nextOpen);
   };
 
-  const handleSubmit = (formData: FormData) => {
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
     setErrorMessage(null);
+
+    const formData = new FormData();
+    formData.set("to", draft.to);
+    formData.set("subject", draft.subject);
+    formData.set("body", draft.body);
+
+    const recipientEmail = draft.to
+      .split(",")
+      .map((part) => part.trim())
+      .find(Boolean);
 
     startTransition(async () => {
       const result = await sendEmail(formData);
 
       if (result.success) {
-        formRef.current?.reset();
+        toast.success("Email sent", {
+          description: recipientEmail ? `Sent to ${recipientEmail}` : undefined,
+        });
         onOpenChange(false);
+        onSent?.();
         router.refresh();
         return;
       }
 
-      setErrorMessage(
-        result.message ?? "Something went wrong while sending your email.",
-      );
+      if (result.error === "validation") {
+        setErrorMessage(result.message ?? "Invalid form input");
+        return;
+      }
+
+      if (result.error === "auth") {
+        toast.error("Your Gmail connection expired.", {
+          description: "Please sign in again.",
+        });
+        return;
+      }
+
+      toast.error("Couldn't send email");
     });
   };
 
@@ -73,7 +114,7 @@ export function ComposeEmailDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form ref={formRef} action={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="compose-to">To</Label>
             <Input
@@ -82,6 +123,10 @@ export function ComposeEmailDialog({
               type="text"
               placeholder="name@example.com"
               autoComplete="email"
+              value={draft.to}
+              onChange={(event) =>
+                onDraftChange({ ...draft, to: event.target.value })
+              }
               disabled={isPending}
               required
             />
@@ -94,6 +139,10 @@ export function ComposeEmailDialog({
               name="subject"
               type="text"
               placeholder="Subject"
+              value={draft.subject}
+              onChange={(event) =>
+                onDraftChange({ ...draft, subject: event.target.value })
+              }
               disabled={isPending}
               required
             />
@@ -106,6 +155,10 @@ export function ComposeEmailDialog({
               name="body"
               placeholder="Write your message..."
               className="min-h-40"
+              value={draft.body}
+              onChange={(event) =>
+                onDraftChange({ ...draft, body: event.target.value })
+              }
               disabled={isPending}
               required
             />

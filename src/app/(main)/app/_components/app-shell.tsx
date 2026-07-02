@@ -2,18 +2,19 @@
 
 import { AppHeader } from "./app-header";
 import { AppSidebar } from "./app-sidebar";
-import { AssistantPanel } from "./assistant-panel";
 import { cn } from "@/shared/lib/utils";
 
 interface AppShellProps {
   workspace: React.ReactNode;
   sidebarActions?: React.ReactNode;
+  assistant?: React.ReactNode;
   isFocusMode?: boolean;
 }
 
 export function AppShell({
   workspace,
   sidebarActions,
+  assistant,
   isFocusMode = false,
 }: AppShellProps) {
   return (
@@ -45,7 +46,7 @@ export function AppShell({
 
         {!isFocusMode ? (
           <div className="hidden min-h-0 xl:block">
-            <AssistantPanel />
+            {assistant}
           </div>
         ) : null}
       </div>

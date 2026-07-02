@@ -32,6 +32,7 @@ interface MailAppWorkspaceProps {
   conversation: MailConversation | null;
   conversationError: "auth" | "unknown" | false;
   conversationId?: string;
+  header: React.ReactNode;
 }
 
 const DEV_COMPOSE_RESPONSE: AssistantResponse = {
@@ -79,6 +80,7 @@ export function MailAppWorkspace({
   conversation,
   conversationError,
   conversationId,
+  header,
 }: MailAppWorkspaceProps) {
   const router = useRouter();
   const [isFocusMode, setIsFocusMode] = useState(false);
@@ -299,6 +301,7 @@ export function MailAppWorkspace({
 
       <AppShell
         isFocusMode={isFocusMode}
+        header={header}
         sidebarActions={<ComposeButton onClick={openCompose} />}
         workspace={
           <InboxWorkspaceClient

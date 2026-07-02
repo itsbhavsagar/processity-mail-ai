@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/shared/ui";
 
 import { MailAppWorkspace } from "@/features/mail/components/mail-app-workspace";
 import { ReconnectGoogleButton } from "./reconnect-google-button";
+import { AppHeader } from "@/app/(main)/app/_components/app-header";
 
 interface InboxWorkspaceProps {
   conversationId?: string;
@@ -41,11 +42,16 @@ function WorkspaceStatusCard({
 
 function GoogleSessionExpiredState() {
   return (
-    <WorkspaceStatusCard
-      title="Your Gmail connection expired"
-      description="Google access tokens last about an hour. Sign in again and we'll reconnect your inbox."
-      action={<ReconnectGoogleButton />}
-    />
+    <div className="flex h-dvh flex-col">
+      <AppHeader />
+      <div className="flex min-h-0 flex-1 items-center justify-center p-6">
+        <WorkspaceStatusCard
+          title="Your Gmail connection expired"
+          description="Google access tokens last about an hour. Sign in again and we'll reconnect your inbox."
+          action={<ReconnectGoogleButton />}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -94,6 +100,7 @@ export async function InboxWorkspace({ conversationId }: InboxWorkspaceProps) {
   return (
     <MailAppWorkspace
       key={conversationId ?? "inbox"}
+      header={<AppHeader />}
       threads={threads}
       conversation={conversation}
       conversationError={conversationError}

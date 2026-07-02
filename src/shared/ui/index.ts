@@ -25,3 +25,16 @@ export {
 } from "./dialog";
 export { Label } from "./label";
 export { Textarea } from "./textarea";
+export {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "./avatar";
+export {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./dropdown-menu";

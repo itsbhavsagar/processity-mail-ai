@@ -1,23 +1,24 @@
 "use client";
 
-import { AppHeader } from "./app-header";
 import { AppSidebar } from "./app-sidebar";
 import { cn } from "@/shared/lib/utils";
 
 interface AppShellProps {
   workspace: React.ReactNode;
   sidebarActions?: React.ReactNode;
+  header?: React.ReactNode;
   isFocusMode?: boolean;
 }
 
 export function AppShell({
   workspace,
   sidebarActions,
+  header,
   isFocusMode = false,
 }: AppShellProps) {
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
-      {!isFocusMode ? <AppHeader /> : null}
+      {!isFocusMode ? header : null}
 
       <div
         className={cn(

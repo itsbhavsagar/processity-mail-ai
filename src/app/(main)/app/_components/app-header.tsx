@@ -1,11 +1,15 @@
-"use client";
-
+import { getServerSession } from "next-auth";
 import { FiMail, FiSearch } from "react-icons/fi";
 
+import { UserProfileMenu } from "@/features/auth/components/user-profile-menu";
+import { authConfig } from "@/features/auth/server/auth-config";
 import { siteConfig } from "@/config/site";
 import { Input } from "@/shared/ui";
 
-export function AppHeader() {
+export async function AppHeader() {
+  const session = await getServerSession(authConfig);
+  const user = session?.user;
+
   return (
     <header className="sticky top-0 z-50 shrink-0 border-b border-border/60 bg-background/90 px-4 py-3 backdrop-blur supports-backdrop-filter:bg-background/75 sm:px-6">
       <div className="flex items-center gap-4">
@@ -33,12 +37,7 @@ export function AppHeader() {
           />
         </div>
 
-        <button
-          aria-label="User profile"
-          className="ml-auto inline-flex size-9 cursor-pointer items-center justify-center rounded-full border border-border/60 bg-muted/50 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
-        >
-          U
-        </button>
+        {user ? <UserProfileMenu user={user} /> : null}
       </div>
     </header>
   );

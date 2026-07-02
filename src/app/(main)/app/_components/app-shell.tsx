@@ -7,14 +7,12 @@ import { cn } from "@/shared/lib/utils";
 interface AppShellProps {
   workspace: React.ReactNode;
   sidebarActions?: React.ReactNode;
-  assistant?: React.ReactNode;
   isFocusMode?: boolean;
 }
 
 export function AppShell({
   workspace,
   sidebarActions,
-  assistant,
   isFocusMode = false,
 }: AppShellProps) {
   return (
@@ -26,7 +24,7 @@ export function AppShell({
           "grid min-h-0 flex-1",
           isFocusMode
             ? "grid-cols-1"
-            : "grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[220px_minmax(0,1fr)_340px]",
+            : "grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)]",
         )}
       >
         {!isFocusMode ? (
@@ -43,12 +41,6 @@ export function AppShell({
         >
           {workspace}
         </main>
-
-        {!isFocusMode ? (
-          <div className="hidden min-h-0 xl:block">
-            {assistant}
-          </div>
-        ) : null}
       </div>
     </div>
   );

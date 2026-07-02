@@ -1,221 +1,289 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  FiArrowRight,
+  FiChevronDown,
+  FiMessageCircle,
+  FiMic,
+  FiX,
+} from "react-icons/fi";
 
-import { executeAssistantActions } from "@/features/assistant/executor/execute-assistant-action";
-import type {
-  AssistantResponse,
-  ComposeEmailPayload,
-} from "@/features/assistant/types/assistant-action";
 import { Button, ScrollArea, Textarea } from "@/shared/ui";
 import { cn } from "@/shared/lib/utils";
 
-type ChatMessage = {
+export type AssistantChatMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
 };
 
-export interface MailAssistantActions {
-  openCompose: () => void;
-  fillCompose: (payload: ComposeEmailPayload) => void;
-  requestSendConfirmation: () => void;
-}
+const SUGGESTION_PROMPTS = [
+  "Draft an email",
+  "Show unread emails",
+  "Find today's emails",
+  "Summarize this conversation",
+] as const;
 
 interface AssistantPanelProps {
-  actions: MailAssistantActions;
-  onConfirmedSend: () => void;
-  conversationId?: string;
-}
-
-const DEV_COMPOSE_RESPONSE: AssistantResponse = {
-  thought:
-    "I've filled the compose form. Would you like me to send it?",
-  requiresConfirmation: true,
-  actions: [
-    {
-      type: "compose_email",
-      payload: {
-        to: "john@example.com",
-        subject: "Meeting Tomorrow",
-        body: "Let's meet at 3pm.",
-      },
-    },
-  ],
-};
-
-const DEV_CONFIRM_SEND_RESPONSE: AssistantResponse = {
-  thought: "Sending now.",
-  requiresConfirmation: false,
-  actions: [{ type: "send_email" }],
-};
-
-function createMessage(role: ChatMessage["role"], content: string): ChatMessage {
-  return {
-    id: crypto.randomUUID(),
-    role,
-    content,
-  };
+  messages: AssistantChatMessage[];
+  input: string;
+  onInputChange: (value: string) => void;
+  isLoading: boolean;
+  onSubmitPrompt: () => void;
+  onSuggestionSelect: (prompt: string) => void;
+  onDevCompose?: () => void;
+  onDevConfirmSend?: () => void;
 }
 
 export function AssistantPanel({
-  actions,
-  onConfirmedSend,
+  messages,
+  input,
+  onInputChange,
+  isLoading,
+  onSubmitPrompt,
+  onSuggestionSelect,
+  onDevCompose,
+  onDevConfirmSend,
 }: AssistantPanelProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isDebugOpen, setIsDebugOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fabRef = useRef<HTMLButtonElement>(null);
 
-  const appendMessage = (message: ChatMessage) => {
-    setMessages((current) => [...current, message]);
+  useEffect(() => {
+    if (messages.length === 0) {
+      return;
+    }
+
     requestAnimationFrame(() => {
       scrollRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
     });
-  };
+  }, [messages, isLoading]);
 
-  const processAssistantResponse = (response: AssistantResponse) => {
-    appendMessage(createMessage("assistant", response.thought));
-
-    executeAssistantActions(response.actions, {
-      openCompose: actions.openCompose,
-      fillCompose: actions.fillCompose,
-    });
-
-    if (response.requiresConfirmation) {
-      actions.requestSendConfirmation();
+  useEffect(() => {
+    if (!isOpen) {
       return;
     }
 
-    const wantsSend = response.actions.some(
-      (action) => action.type === "send_email",
-    );
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") {
+        return;
+      }
 
-    if (wantsSend) {
-      onConfirmedSend();
+      event.stopPropagation();
+      setIsOpen(false);
+      fabRef.current?.focus();
+    };
+
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
+  }, [isOpen]);
+
+  const handleInputKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      onSubmitPrompt();
     }
   };
 
-  const handleDevCompose = () => {
-    appendMessage(
-      createMessage(
-        "user",
-        "Send an email to john@example.com with subject Meeting Tomorrow and body Let's meet at 3pm.",
-      ),
-    );
-    processAssistantResponse(DEV_COMPOSE_RESPONSE);
-  };
-
-  const handleDevConfirmSend = () => {
-    appendMessage(createMessage("user", "Yes"));
-    processAssistantResponse(DEV_CONFIRM_SEND_RESPONSE);
-  };
-
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
-
-    const trimmed = input.trim();
-    if (!trimmed || isLoading) {
-      return;
-    }
-
-    appendMessage(createMessage("user", trimmed));
-    setInput("");
-    setIsLoading(true);
-
-    // Phase 2+: POST /api/assistant. Phase 1 uses dev shortcuts only.
-    if (trimmed.toLowerCase() === "yes") {
-      processAssistantResponse(DEV_CONFIRM_SEND_RESPONSE);
-    } else {
-      appendMessage(
-        createMessage(
-          "assistant",
-          "Assistant API is not connected yet. Use the dev buttons below to test compose actions.",
-        ),
-      );
-    }
-
-    setIsLoading(false);
+  const toggleOpen = () => {
+    setIsOpen((current) => !current);
   };
 
   return (
-    <aside className="flex h-full min-h-0 flex-col border-l border-border/60 bg-card/50">
-      <div className="shrink-0 border-b border-border/60 px-4 py-4">
-        <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          AI Assistant
-        </h2>
+    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+      <div
+        id="commandmail-ai-panel"
+        role="region"
+        aria-label="CommandMail AI assistant"
+        aria-hidden={!isOpen}
+        className={cn(
+          "flex w-[min(420px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-border/60 bg-background shadow-xl transition-all duration-200",
+          "h-[min(600px,calc(100dvh-6rem))]",
+          isOpen
+            ? "pointer-events-auto translate-y-0 opacity-100"
+            : "pointer-events-none invisible translate-y-2 opacity-0",
+        )}
+      >
+        <header className="flex shrink-0 items-center justify-between border-b border-border/60 px-4 py-3">
+          <div className="min-w-0">
+            <h2
+              id="commandmail-ai-title"
+              className="flex items-center gap-2 truncate text-sm font-semibold tracking-tight"
+            >
+              <FiMessageCircle className="size-4 shrink-0 text-primary" aria-hidden />
+              <span className="truncate">CommandMail AI</span>
+            </h2>
+            {isLoading ? (
+              <p className="text-xs text-muted-foreground" aria-live="polite">
+                Thinking...
+              </p>
+            ) : null}
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-8 shrink-0 text-muted-foreground"
+            onClick={() => setIsOpen(false)}
+            aria-label="Close assistant"
+          >
+            <FiX className="size-4" aria-hidden />
+          </Button>
+        </header>
+
+        <ScrollArea className="min-h-0 flex-1">
+          <div className="space-y-3 px-4 py-4">
+            {messages.length === 0 ? (
+              <div className="space-y-4">
+                <p className="text-sm font-medium text-foreground">
+                  How can I help today?
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {SUGGESTION_PROMPTS.map((prompt) => (
+                    <button
+                      key={prompt}
+                      type="button"
+                      className="rounded-full border border-border/60 bg-muted/30 px-3 py-1.5 text-xs text-foreground/90 transition-colors hover:bg-muted/60"
+                      onClick={() => onSuggestionSelect(prompt)}
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={cn(
+                  "max-w-[92%] text-sm leading-relaxed",
+                  message.role === "user"
+                    ? "ml-auto rounded-2xl bg-primary px-3 py-2 text-primary-foreground"
+                    : "text-foreground/90",
+                )}
+              >
+                {message.content}
+              </div>
+            ))}
+
+            {isLoading && messages.length > 0 ? (
+              <p className="text-sm text-muted-foreground" aria-live="polite">
+                Thinking...
+              </p>
+            ) : null}
+
+            <div ref={scrollRef} />
+          </div>
+        </ScrollArea>
+
+        <footer className="shrink-0 border-t border-border/60 p-3">
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              onSubmitPrompt();
+            }}
+            className="space-y-2"
+          >
+            <div className="flex items-end gap-2 rounded-2xl border border-border/60 bg-muted/20 px-3 py-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-8 shrink-0 text-muted-foreground"
+                disabled
+                aria-label="Voice input (coming soon)"
+              >
+                <FiMic className="size-4" aria-hidden />
+              </Button>
+              <Textarea
+                value={input}
+                onChange={(event) => onInputChange(event.target.value)}
+                onKeyDown={handleInputKeyDown}
+                placeholder="Ask CommandMail AI..."
+                rows={1}
+                className="max-h-28 min-h-8 flex-1 resize-none border-0 bg-transparent px-0 py-1.5 shadow-none focus-visible:ring-0"
+                disabled={isLoading}
+                aria-label="Ask CommandMail AI"
+              />
+              <Button
+                type="submit"
+                size="icon"
+                variant="ghost"
+                className="size-8 shrink-0 text-muted-foreground hover:text-foreground"
+                disabled={isLoading || !input.trim()}
+                aria-label="Send message"
+              >
+                <FiArrowRight className="size-4" aria-hidden />
+              </Button>
+            </div>
+
+            {process.env.NODE_ENV === "development" &&
+            onDevCompose &&
+            onDevConfirmSend ? (
+              <div>
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                  onClick={() => setIsDebugOpen((open) => !open)}
+                  aria-expanded={isDebugOpen}
+                >
+                  <FiChevronDown
+                    className={cn(
+                      "size-3.5 transition-transform",
+                      isDebugOpen ? "rotate-180" : "",
+                    )}
+                    aria-hidden
+                  />
+                  Debug
+                </button>
+                {isDebugOpen ? (
+                  <div className="mt-2 flex gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="h-8 flex-1 text-xs"
+                      onClick={onDevCompose}
+                    >
+                      compose_email
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 flex-1 text-xs"
+                      onClick={onDevConfirmSend}
+                    >
+                      send_email
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </form>
+        </footer>
       </div>
 
-      <ScrollArea className="min-h-0 flex-1 px-4 py-4">
-        <div className="space-y-3 pr-3">
-          {messages.length === 0 ? (
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              Ask the assistant to compose email, or use the dev buttons to test
-              UI actions.
-            </p>
-          ) : null}
-
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={cn(
-                "rounded-lg px-3 py-2 text-sm leading-relaxed",
-                message.role === "user"
-                  ? "ml-6 bg-primary text-primary-foreground"
-                  : "mr-6 border border-border/50 bg-muted/20 text-foreground/90",
-              )}
-            >
-              {message.content}
-            </div>
-          ))}
-
-          {isLoading ? (
-            <p className="text-sm text-muted-foreground">Assistant is thinking…</p>
-          ) : null}
-
-          <div ref={scrollRef} />
-        </div>
-      </ScrollArea>
-
-      <form
-        onSubmit={handleSubmit}
-        className="shrink-0 space-y-3 border-t border-border/60 px-4 py-4"
+      <Button
+        ref={fabRef}
+        type="button"
+        onClick={toggleOpen}
+        aria-label="Open CommandMail AI"
+        aria-expanded={isOpen}
+        aria-controls="commandmail-ai-panel"
+        className={cn(
+          "h-11 gap-2 rounded-full px-4 shadow-lg",
+          isOpen && "ring-2 ring-primary/20",
+        )}
       >
-        <Textarea
-          value={input}
-          onChange={(event) => setInput(event.target.value)}
-          placeholder="Ask the assistant…"
-          className="min-h-20 resize-none"
-          disabled={isLoading}
-        />
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          Send
-        </Button>
-
-        {process.env.NODE_ENV === "development" ? (
-          <div className="space-y-2 border-t border-border/60 pt-3">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Dev actions
-            </p>
-            <Button
-              type="button"
-              variant="secondary"
-              className="w-full"
-              onClick={handleDevCompose}
-            >
-              Test compose_email
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={handleDevConfirmSend}
-            >
-              Test send_email (after confirm)
-            </Button>
-          </div>
-        ) : null}
-      </form>
-    </aside>
+        <FiMessageCircle className="size-4 shrink-0" aria-hidden />
+        <span className="hidden text-sm font-medium sm:inline">
+          CommandMail AI
+        </span>
+      </Button>
+    </div>
   );
 }

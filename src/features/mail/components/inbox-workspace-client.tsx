@@ -79,7 +79,7 @@ export function InboxWorkspaceClient({
   const showConversationOnMobile = Boolean(conversationId);
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4 md:grid md:grid-cols-[360px_minmax(0,1fr)] md:gap-6">
+    <div className="flex h-full min-h-0 flex-col gap-4 md:grid md:grid-cols-[minmax(0,32fr)_minmax(0,46fr)] md:gap-6">
       <div
         className={cn(
           "min-h-0 md:block",

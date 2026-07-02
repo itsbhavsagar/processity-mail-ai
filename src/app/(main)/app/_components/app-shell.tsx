@@ -5,9 +5,12 @@ import { motion } from "framer-motion";
 import { AppHeader } from "./app-header";
 import { AppSidebar } from "./app-sidebar";
 import { AssistantPanel } from "./assistant-panel";
-import { WorkspaceEmptyState } from "./workspace-empty-state";
 
-export function AppShell() {
+interface AppShellProps {
+  workspace: React.ReactNode;
+}
+
+export function AppShell({ workspace }: AppShellProps) {
   return (
     <div className="flex min-h-full flex-1 flex-col">
       <AppHeader />
@@ -26,7 +29,7 @@ export function AppShell() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
         >
-          <WorkspaceEmptyState />
+          {workspace}
         </motion.main>
 
         <motion.div

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 
 import { authConfig } from "@/features/auth/server/auth-config";
+import { Button } from "@/shared/ui";
 
 export default async function LoginPage() {
   const session = await getServerSession(authConfig);
@@ -19,12 +20,9 @@ export default async function LoginPage() {
         </p>
         <form method="get" action="/api/auth/signin/google" className="mt-6">
           <input type="hidden" name="callbackUrl" value="/app" />
-          <button
-            type="submit"
-            className="inline-flex h-10 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
+          <Button type="submit" className="w-full">
             Continue with Google
-          </button>
+          </Button>
         </form>
       </div>
     </main>

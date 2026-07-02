@@ -1,63 +1,72 @@
-import { FiAlertCircle, FiMessageSquare } from "react-icons/fi";
+"use client";
+
+import { FiAlertCircle, FiArrowLeft, FiMaximize2, FiMessageSquare, FiMinimize2 } from "react-icons/fi";
 
 import type { MailConversation } from "@/features/mail/types/mail-conversation";
 import {
+  Button,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   ScrollArea,
-  Separator,
   Skeleton,
 } from "@/shared/ui";
+import { cn } from "@/shared/lib/utils";
 
+import { ConversationMessages } from "./conversation-messages";
 import { ReconnectGoogleButton } from "./reconnect-google-button";
+
+type ConversationViewMode = "default" | "focus";
 
 interface ConversationViewProps {
   conversation: MailConversation | null;
   activeThreadId?: string;
   isLoading: boolean;
   conversationError: "auth" | "unknown" | false;
+  mode?: ConversationViewMode;
+  canToggleFocusMode?: boolean;
+  onToggleFocusMode?: () => void;
+  onExitFocusMode?: () => void;
+  onFocusBack?: () => void;
 }
 
-function formatSentAt(isoDate: string): string {
-  const date = new Date(isoDate);
-
-  return date.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
-function ConversationLoadingState() {
+function ConversationLoadingState({ mode }: { mode: ConversationViewMode }) {
   return (
-    <Card className="flex h-full min-h-0 flex-col border-border/60 bg-card/80 shadow-sm">
+    <Card
+      className={cn(
+        "flex h-full min-h-0 flex-col shadow-sm",
+        mode === "focus"
+          ? "border-0 bg-transparent shadow-none"
+          : "border-border/60 bg-card/80",
+      )}
+    >
       <CardHeader className="shrink-0 space-y-3 border-b border-border/60 px-6 py-4">
         <Skeleton className="h-6 w-2/3" />
         <Skeleton className="h-4 w-24" />
       </CardHeader>
       <CardContent className="space-y-8 px-6 py-6">
-        <div className="space-y-3">
+        <div className="mx-auto w-full max-w-3xl space-y-3">
           <Skeleton className="h-4 w-32" />
-          <Skeleton className="h-4 w-full max-w-3xl" />
-          <Skeleton className="h-4 w-full max-w-3xl" />
-          <Skeleton className="h-4 w-4/5 max-w-3xl" />
-        </div>
-        <div className="space-y-3">
-          <Skeleton className="h-4 w-28" />
-          <Skeleton className="h-4 w-full max-w-3xl" />
-          <Skeleton className="h-4 w-full max-w-3xl" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-4/5" />
         </div>
       </CardContent>
     </Card>
   );
 }
 
-function ConversationEmptyState() {
+function ConversationEmptyState({ mode }: { mode: ConversationViewMode }) {
   return (
-    <Card className="flex h-full min-h-0 flex-col items-center justify-center border-border/60 bg-card/80 shadow-sm">
+    <Card
+      className={cn(
+        "flex h-full min-h-0 flex-col items-center justify-center shadow-sm",
+        mode === "focus"
+          ? "border-0 bg-transparent shadow-none"
+          : "border-border/60 bg-card/80",
+      )}
+    >
       <CardContent className="px-6 py-16 text-center">
         <span
           aria-hidden
@@ -76,9 +85,16 @@ function ConversationEmptyState() {
   );
 }
 
-function ConversationAuthErrorState() {
+function ConversationAuthErrorState({ mode }: { mode: ConversationViewMode }) {
   return (
-    <Card className="flex h-full min-h-0 flex-col items-center justify-center border-border/60 bg-card/80 shadow-sm">
+    <Card
+      className={cn(
+        "flex h-full min-h-0 flex-col items-center justify-center shadow-sm",
+        mode === "focus"
+          ? "border-0 bg-transparent shadow-none"
+          : "border-border/60 bg-card/80",
+      )}
+    >
       <CardContent className="px-6 py-16 text-center">
         <span
           aria-hidden
@@ -101,9 +117,16 @@ function ConversationAuthErrorState() {
   );
 }
 
-function ConversationErrorState() {
+function ConversationErrorState({ mode }: { mode: ConversationViewMode }) {
   return (
-    <Card className="flex h-full min-h-0 flex-col items-center justify-center border-border/60 bg-card/80 shadow-sm">
+    <Card
+      className={cn(
+        "flex h-full min-h-0 flex-col items-center justify-center shadow-sm",
+        mode === "focus"
+          ? "border-0 bg-transparent shadow-none"
+          : "border-border/60 bg-card/80",
+      )}
+    >
       <CardContent className="px-6 py-16 text-center">
         <span
           aria-hidden
@@ -128,68 +151,106 @@ export function ConversationView({
   activeThreadId,
   isLoading,
   conversationError,
+  mode = "default",
+  canToggleFocusMode = false,
+  onToggleFocusMode,
+  onExitFocusMode,
+  onFocusBack,
 }: ConversationViewProps) {
   if (!activeThreadId) {
-    return <ConversationEmptyState />;
+    return <ConversationEmptyState mode={mode} />;
   }
 
   if (isLoading) {
-    return <ConversationLoadingState />;
+    return <ConversationLoadingState mode={mode} />;
   }
 
   if (conversationError === "auth") {
-    return <ConversationAuthErrorState />;
+    return <ConversationAuthErrorState mode={mode} />;
   }
 
   if (conversationError === "unknown" || !conversation) {
-    return <ConversationErrorState />;
+    return <ConversationErrorState mode={mode} />;
   }
 
+  const isFocus = mode === "focus";
+
   return (
-    <Card className="flex h-full min-h-0 flex-col border-border/60 bg-card/80 shadow-sm">
-      <CardHeader className="shrink-0 border-b border-border/60 px-6 py-4">
-        <CardTitle className="text-lg font-semibold leading-snug tracking-tight">
-          {conversation.subject}
-        </CardTitle>
-        <p className="text-xs text-muted-foreground">
-          {conversation.messages.length}{" "}
-          {conversation.messages.length === 1 ? "message" : "messages"}
-        </p>
+    <Card
+      className={cn(
+        "flex h-full min-h-0 flex-col",
+        isFocus
+          ? "border-0 bg-transparent shadow-none"
+          : "border-border/60 bg-card/80 shadow-sm",
+      )}
+    >
+      <CardHeader
+        className={cn(
+          "shrink-0 border-b border-border/60",
+          isFocus ? "px-4 py-4 sm:px-8" : "px-6 py-4",
+        )}
+      >
+        {isFocus ? (
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="gap-2"
+              onClick={onFocusBack}
+            >
+              <FiArrowLeft className="size-4" aria-hidden />
+              Back to inbox
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-8 shrink-0"
+              onClick={onExitFocusMode}
+              aria-label="Exit focus mode"
+            >
+              <FiMinimize2 className="size-4" />
+            </Button>
+          </div>
+        ) : null}
+
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <CardTitle
+              className={cn(
+                "font-semibold leading-snug tracking-tight",
+                isFocus ? "text-xl sm:text-2xl" : "text-lg",
+              )}
+            >
+              {conversation.subject}
+            </CardTitle>
+            <p className="mt-2 text-xs text-muted-foreground">
+              {conversation.messages.length}{" "}
+              {conversation.messages.length === 1 ? "message" : "messages"}
+              {!isFocus && canToggleFocusMode ? (
+                <span className="hidden sm:inline"> · Press F for focus mode</span>
+              ) : null}
+            </p>
+          </div>
+
+          {!isFocus && canToggleFocusMode ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-8 shrink-0"
+              onClick={onToggleFocusMode}
+              aria-label="Enter focus mode"
+            >
+              <FiMaximize2 className="size-4" />
+            </Button>
+          ) : null}
+        </div>
       </CardHeader>
 
       <ScrollArea className="min-h-0 flex-1">
-        <div className="space-y-8 px-6 py-6">
-          {conversation.messages.map((message, index) => (
-            <article key={message.id}>
-              <div className="space-y-2">
-                <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                  <p className="text-sm font-semibold text-foreground">
-                    {message.sender}
-                  </p>
-                  <time
-                    dateTime={message.sentAt}
-                    className="text-xs tabular-nums text-muted-foreground"
-                  >
-                    {formatSentAt(message.sentAt)}
-                  </time>
-                </div>
-                {message.recipients.length > 0 ? (
-                  <p className="text-xs text-muted-foreground">
-                    To {message.recipients.join(", ")}
-                  </p>
-                ) : null}
-              </div>
-
-              <p className="mt-4 max-w-3xl whitespace-pre-wrap text-sm leading-7 text-foreground/90">
-                {message.body || "(No message body)"}
-              </p>
-
-              {index < conversation.messages.length - 1 ? (
-                <Separator className="mt-8" />
-              ) : null}
-            </article>
-          ))}
-        </div>
+        <ConversationMessages conversation={conversation} mode={mode} />
       </ScrollArea>
     </Card>
   );

@@ -17,6 +17,9 @@ interface InboxWorkspaceClientProps {
   conversation: MailConversation | null;
   conversationError: "auth" | "unknown" | false;
   conversationId?: string;
+  isFocusMode: boolean;
+  onToggleFocusMode: () => void;
+  onExitFocusMode: () => void;
 }
 
 export function InboxWorkspaceClient({
@@ -24,6 +27,9 @@ export function InboxWorkspaceClient({
   conversation,
   conversationError,
   conversationId,
+  isFocusMode,
+  onToggleFocusMode,
+  onExitFocusMode,
 }: InboxWorkspaceClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -40,10 +46,40 @@ export function InboxWorkspaceClient({
     });
   };
 
+  const canToggleFocusMode = Boolean(
+    conversationId && conversation && !conversationError && !isPending,
+  );
+
   if (threads.length === 0) {
     return (
       <div className="h-full min-h-0">
         <InboxThreadList threads={threads} />
+      </div>
+    );
+  }
+
+  const handleFocusBack = () => {
+    onExitFocusMode();
+
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      handleBackToInbox();
+    }
+  };
+
+  if (isFocusMode) {
+    return (
+      <div className="h-full min-h-0">
+        <ConversationView
+          conversation={conversation}
+          activeThreadId={conversationId}
+          isLoading={isPending}
+          conversationError={conversationError}
+          mode="focus"
+          canToggleFocusMode={canToggleFocusMode}
+          onToggleFocusMode={onToggleFocusMode}
+          onExitFocusMode={onExitFocusMode}
+          onFocusBack={handleFocusBack}
+        />
       </div>
     );
   }
@@ -91,6 +127,11 @@ export function InboxWorkspaceClient({
           activeThreadId={conversationId}
           isLoading={isPending}
           conversationError={conversationError}
+          mode="default"
+          canToggleFocusMode={canToggleFocusMode}
+          onToggleFocusMode={onToggleFocusMode}
+          onExitFocusMode={onExitFocusMode}
+          onFocusBack={handleFocusBack}
         />
       </div>
     </div>

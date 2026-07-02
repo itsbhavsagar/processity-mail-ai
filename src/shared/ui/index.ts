@@ -10,3 +10,4 @@ export {
 } from "./card";
 export { Separator } from "./separator";
 export { Skeleton } from "./skeleton";
+export { ScrollArea, ScrollBar } from "./scroll-area";

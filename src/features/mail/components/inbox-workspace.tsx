@@ -10,7 +10,7 @@ import type { MailConversation } from "@/features/mail/types/mail-conversation";
 import type { MailThread } from "@/features/mail/types/mail-thread";
 import { Card, CardContent } from "@/shared/ui";
 
-import { InboxWorkspaceClient } from "./inbox-workspace-client";
+import { MailAppWorkspace } from "@/features/mail/components/mail-app-workspace";
 import { ReconnectGoogleButton } from "./reconnect-google-button";
 
 interface InboxWorkspaceProps {
@@ -92,7 +92,8 @@ export async function InboxWorkspace({ conversationId }: InboxWorkspaceProps) {
   }
 
   return (
-    <InboxWorkspaceClient
+    <MailAppWorkspace
+      key={conversationId ?? "inbox"}
       threads={threads}
       conversation={conversation}
       conversationError={conversationError}

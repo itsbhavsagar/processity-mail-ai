@@ -7,6 +7,8 @@ import type { MailThread } from "@/features/mail/types/mail-thread";
 
 import { AppShell } from "@/app/(main)/app/_components/app-shell";
 
+import { ComposeButton } from "./compose-button";
+import { ComposeEmailDialog } from "./compose-email-dialog";
 import { InboxWorkspaceClient } from "./inbox-workspace-client";
 
 interface MailAppWorkspaceProps {
@@ -31,6 +33,7 @@ export function MailAppWorkspace({
   conversationId,
 }: MailAppWorkspaceProps) {
   const [isFocusMode, setIsFocusMode] = useState(false);
+  const [isComposeOpen, setIsComposeOpen] = useState(false);
 
   const canUseFocusMode = Boolean(
     conversationId && conversation && !conversationError,
@@ -64,19 +67,29 @@ export function MailAppWorkspace({
   }, [canUseFocusMode, isFocusMode]);
 
   return (
-    <AppShell
-      isFocusMode={isFocusMode}
-      workspace={
-        <InboxWorkspaceClient
-          threads={threads}
-          conversation={conversation}
-          conversationError={conversationError}
-          conversationId={conversationId}
-          isFocusMode={isFocusMode}
-          onToggleFocusMode={() => setIsFocusMode((current) => !current)}
-          onExitFocusMode={() => setIsFocusMode(false)}
-        />
-      }
-    />
+    <>
+      <ComposeEmailDialog
+        open={isComposeOpen}
+        onOpenChange={setIsComposeOpen}
+      />
+
+      <AppShell
+        isFocusMode={isFocusMode}
+        sidebarActions={
+          <ComposeButton onClick={() => setIsComposeOpen(true)} />
+        }
+        workspace={
+          <InboxWorkspaceClient
+            threads={threads}
+            conversation={conversation}
+            conversationError={conversationError}
+            conversationId={conversationId}
+            isFocusMode={isFocusMode}
+            onToggleFocusMode={() => setIsFocusMode((current) => !current)}
+            onExitFocusMode={() => setIsFocusMode(false)}
+          />
+        }
+      />
+    </>
   );
 }

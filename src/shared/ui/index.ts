@@ -11,3 +11,17 @@ export {
 export { Separator } from "./separator";
 export { Skeleton } from "./skeleton";
 export { ScrollArea, ScrollBar } from "./scroll-area";
+export {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+  DialogTrigger,
+} from "./dialog";
+export { Label } from "./label";
+export { Textarea } from "./textarea";

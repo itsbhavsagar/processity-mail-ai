@@ -7,10 +7,15 @@ import { cn } from "@/shared/lib/utils";
 
 interface AppShellProps {
   workspace: React.ReactNode;
+  sidebarActions?: React.ReactNode;
   isFocusMode?: boolean;
 }
 
-export function AppShell({ workspace, isFocusMode = false }: AppShellProps) {
+export function AppShell({
+  workspace,
+  sidebarActions,
+  isFocusMode = false,
+}: AppShellProps) {
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
       {!isFocusMode ? <AppHeader /> : null}
@@ -25,7 +30,7 @@ export function AppShell({ workspace, isFocusMode = false }: AppShellProps) {
       >
         {!isFocusMode ? (
           <div className="hidden min-h-0 md:block">
-            <AppSidebar />
+            <AppSidebar actions={sidebarActions} />
           </div>
         ) : null}
 

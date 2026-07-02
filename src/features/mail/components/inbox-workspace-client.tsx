@@ -50,14 +50,6 @@ export function InboxWorkspaceClient({
     conversationId && conversation && !conversationError && !isPending,
   );
 
-  if (threads.length === 0) {
-    return (
-      <div className="h-full min-h-0">
-        <InboxThreadList threads={threads} />
-      </div>
-    );
-  }
-
   const handleFocusBack = () => {
     onExitFocusMode();
 

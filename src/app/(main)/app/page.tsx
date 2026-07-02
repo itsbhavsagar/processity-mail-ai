@@ -6,12 +6,7 @@ export default function AppPage() {
       <h1 className="text-3xl font-semibold tracking-tight">
         {siteConfig.name}
       </h1>
-      <p className="max-w-lg text-center text-muted-foreground">
-        {siteConfig.description}
-      </p>
-      <p className="text-sm text-muted-foreground">
-        Architecture scaffold ready — features will be added here.
-      </p>
+      <p className="text-muted-foreground">AI-native email workspace.</p>
     </main>
   );
 }

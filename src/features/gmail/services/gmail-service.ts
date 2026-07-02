@@ -11,6 +11,16 @@ interface GmailThreadListResponse {
   threads?: Array<{ id: string }>;
 }
 
+export class GmailApiError extends Error {
+  readonly status: number;
+
+  constructor(status: number) {
+    super(`Gmail API request failed (${status})`);
+    this.name = "GmailApiError";
+    this.status = status;
+  }
+}
+
 async function gmailFetch<T>(path: string, accessToken: string): Promise<T> {
   const response = await fetch(`${GMAIL_API_BASE}${path}`, {
     headers: {
@@ -20,7 +30,7 @@ async function gmailFetch<T>(path: string, accessToken: string): Promise<T> {
   });
 
   if (!response.ok) {
-    throw new Error(`Gmail API request failed (${response.status})`);
+    throw new GmailApiError(response.status);
   }
 
   return response.json() as Promise<T>;
@@ -36,7 +46,7 @@ export async function listInbox(accessToken: string): Promise<MailThread[]> {
     return [];
   }
 
-  const threadResponses = await Promise.all(
+  const threadResponses = await Promise.allSettled(
     list.threads.map((thread) =>
       gmailFetch<GmailThreadResponse>(
         `/threads/${thread.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`,
@@ -45,7 +55,24 @@ export async function listInbox(accessToken: string): Promise<MailThread[]> {
     ),
   );
 
-  return threadResponses.map(normalizeThread);
+  const fulfilledThreads = threadResponses
+    .filter(
+      (result): result is PromiseFulfilledResult<GmailThreadResponse> =>
+        result.status === "fulfilled",
+    )
+    .map((result) => result.value);
+
+  if (fulfilledThreads.length === 0) {
+    const firstRejection = threadResponses.find(
+      (result) => result.status === "rejected",
+    );
+
+    if (firstRejection?.status === "rejected") {
+      throw firstRejection.reason;
+    }
+  }
+
+  return fulfilledThreads.map(normalizeThread);
 }
 
 export async function getConversation(

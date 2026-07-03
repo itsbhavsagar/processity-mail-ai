@@ -17,6 +17,7 @@ interface InboxWorkspaceClientProps {
   conversation: MailConversation | null;
   conversationError: "auth" | "unknown" | false;
   conversationId?: string;
+  currentUserEmail?: string;
   isFocusMode: boolean;
   onToggleFocusMode: () => void;
   onExitFocusMode: () => void;
@@ -27,6 +28,7 @@ export function InboxWorkspaceClient({
   conversation,
   conversationError,
   conversationId,
+  currentUserEmail,
   isFocusMode,
   onToggleFocusMode,
   onExitFocusMode,
@@ -66,6 +68,7 @@ export function InboxWorkspaceClient({
           activeThreadId={conversationId}
           isLoading={isPending}
           conversationError={conversationError}
+          currentUserEmail={currentUserEmail}
           mode="focus"
           canToggleFocusMode={canToggleFocusMode}
           onToggleFocusMode={onToggleFocusMode}
@@ -82,8 +85,8 @@ export function InboxWorkspaceClient({
     <div className="flex h-full min-h-0 flex-col gap-4 md:grid md:grid-cols-[minmax(0,32fr)_minmax(0,46fr)] md:gap-6">
       <div
         className={cn(
-          "min-h-0 md:block",
-          showConversationOnMobile ? "hidden" : "block",
+          "h-full min-h-0",
+          showConversationOnMobile ? "hidden md:block" : "block",
         )}
       >
         <InboxThreadList
@@ -96,8 +99,8 @@ export function InboxWorkspaceClient({
 
       <div
         className={cn(
-          "flex min-h-0 flex-col gap-3 md:block",
-          showConversationOnMobile ? "block" : "hidden md:block",
+          "flex h-full min-h-0 flex-col gap-3",
+          showConversationOnMobile ? "flex" : "hidden md:flex",
         )}
       >
         {showConversationOnMobile ? (
@@ -114,17 +117,20 @@ export function InboxWorkspaceClient({
           </Button>
         ) : null}
 
-        <ConversationView
-          conversation={conversation}
-          activeThreadId={conversationId}
-          isLoading={isPending}
-          conversationError={conversationError}
-          mode="default"
-          canToggleFocusMode={canToggleFocusMode}
-          onToggleFocusMode={onToggleFocusMode}
-          onExitFocusMode={onExitFocusMode}
-          onFocusBack={handleFocusBack}
-        />
+        <div className="min-h-0 flex-1">
+          <ConversationView
+            conversation={conversation}
+            activeThreadId={conversationId}
+            isLoading={isPending}
+            conversationError={conversationError}
+            currentUserEmail={currentUserEmail}
+            mode="default"
+            canToggleFocusMode={canToggleFocusMode}
+            onToggleFocusMode={onToggleFocusMode}
+            onExitFocusMode={onExitFocusMode}
+            onFocusBack={handleFocusBack}
+          />
+        </div>
       </div>
     </div>
   );

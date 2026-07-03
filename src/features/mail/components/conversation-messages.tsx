@@ -1,57 +1,40 @@
 import type { MailConversation } from "@/features/mail/types/mail-conversation";
 import { Separator } from "@/shared/ui";
 
-function formatSentAt(isoDate: string): string {
-  const date = new Date(isoDate);
-
-  return date.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
+import { MessageBody } from "./message-body";
+import { MessageHeader } from "./message-header";
 
 interface ConversationMessagesProps {
   conversation: MailConversation;
   mode: "default" | "focus";
+  currentUserEmail?: string;
 }
 
 export function ConversationMessages({
   conversation,
   mode,
+  currentUserEmail,
 }: ConversationMessagesProps) {
   const contentClassName =
     mode === "focus"
-      ? "mx-auto w-full max-w-3xl space-y-10 px-4 py-8 sm:px-8 sm:py-10"
-      : "space-y-8 px-6 py-6";
+      ? "mx-auto w-full min-w-0 max-w-3xl space-y-10 px-4 py-8 sm:px-8 sm:py-10"
+      : "min-w-0 space-y-8 px-4 py-6 sm:px-6";
 
   return (
     <div className={contentClassName}>
       {conversation.messages.map((message, index) => (
-        <article key={message.id}>
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-              <p className="text-sm font-semibold text-foreground">
-                {message.sender}
-              </p>
-              <time
-                dateTime={message.sentAt}
-                className="text-xs tabular-nums text-muted-foreground"
-              >
-                {formatSentAt(message.sentAt)}
-              </time>
-            </div>
-            {message.recipients.length > 0 ? (
-              <p className="text-xs text-muted-foreground">
-                To {message.recipients.join(", ")}
-              </p>
-            ) : null}
-          </div>
+        <article key={message.id} className="min-w-0 max-w-full">
+          <MessageHeader
+            message={message}
+            currentUserEmail={currentUserEmail}
+          />
 
-          <p className="mt-4 max-w-3xl whitespace-pre-wrap text-sm leading-7 text-foreground/90">
-            {message.body || "(No message body)"}
-          </p>
+          <div className="mt-4 min-w-0 max-w-full overflow-hidden rounded-lg border border-border/50 bg-muted/20 px-4 py-4 sm:px-5 sm:py-5">
+            <MessageBody
+              bodyHtml={message.bodyHtml}
+              bodyText={message.bodyText}
+            />
+          </div>
 
           {index < conversation.messages.length - 1 ? (
             <Separator className={mode === "focus" ? "mt-10" : "mt-8"} />

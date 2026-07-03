@@ -1,5 +1,6 @@
 import { extractMessageBody } from "@/features/gmail/mappers/extract-message-body";
 import type { GmailMessage } from "@/features/gmail/types/gmail-api";
+import { parseMailboxList } from "@/features/mail/lib/parse-mailbox";
 import type { MailMessage } from "@/features/mail/types/mail-message";
 
 function getHeader(
@@ -12,27 +13,6 @@ function getHeader(
   );
 }
 
-function parseAddress(value: string): string {
-  const match = value.match(/^(.+?)\s*<.+>$/);
-
-  if (match) {
-    return match[1].replace(/^"|"$/g, "").trim();
-  }
-
-  return value.trim();
-}
-
-function parseRecipients(headerValue: string): string[] {
-  if (!headerValue) {
-    return [];
-  }
-
-  return headerValue
-    .split(",")
-    .map(parseAddress)
-    .filter(Boolean);
-}
-
 export function normalizeMessage(gmailMessage: GmailMessage): MailMessage {
   const headers = gmailMessage.payload?.headers ?? [];
   const from = getHeader(headers, "From");
@@ -41,13 +21,17 @@ export function normalizeMessage(gmailMessage: GmailMessage): MailMessage {
   const subject = getHeader(headers, "Subject") || "(No subject)";
   const dateValue = getHeader(headers, "Date");
   const sentAt = dateValue ? new Date(dateValue) : new Date();
+  const sender = parseMailboxList(from)[0] ?? { name: "Unknown", email: "" };
+  const { html, text } = extractMessageBody(gmailMessage.payload);
 
   return {
     id: gmailMessage.id,
-    sender: parseAddress(from) || "Unknown",
-    recipients: [...parseRecipients(to), ...parseRecipients(cc)],
+    sender,
+    to: parseMailboxList(to),
+    cc: parseMailboxList(cc),
     subject,
-    body: extractMessageBody(gmailMessage.payload),
+    bodyHtml: html,
+    bodyText: text,
     sentAt: sentAt.toISOString(),
   };
 }

@@ -1,4 +1,5 @@
 import type { GmailThreadResponse } from "@/features/gmail/types/gmail-api";
+import { getMailboxDisplayName, parseMailboxList } from "@/features/mail/lib/parse-mailbox";
 import type { MailThread } from "@/features/mail/types/mail-thread";
 
 function getHeader(
@@ -12,13 +13,9 @@ function getHeader(
 }
 
 function parseSender(from: string): string {
-  const match = from.match(/^(.+?)\s*<.+>$/);
+  const sender = parseMailboxList(from)[0];
 
-  if (match) {
-    return match[1].replace(/^"|"$/g, "").trim();
-  }
-
-  return from.trim();
+  return sender ? getMailboxDisplayName(sender) : "Unknown";
 }
 
 export function normalizeThread(gmailThread: GmailThreadResponse): MailThread {

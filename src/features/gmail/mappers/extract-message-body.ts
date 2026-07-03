@@ -1,22 +1,13 @@
 import type { GmailMessagePayload, GmailMessagePart } from "@/features/gmail/types/gmail-api";
 
+export interface ExtractedMessageBody {
+  html?: string;
+  text?: string;
+}
+
 function decodeBase64Url(data: string): string {
   const base64 = data.replace(/-/g, "+").replace(/_/g, "/");
   return Buffer.from(base64, "base64").toString("utf-8");
-}
-
-function stripHtml(html: string): string {
-  return html
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 function extractFromPart(part: GmailMessagePart): {
@@ -51,20 +42,17 @@ function extractFromPart(part: GmailMessagePart): {
   return { plain, html };
 }
 
-export function extractMessageBody(payload?: GmailMessagePayload): string {
+export function extractMessageBody(
+  payload?: GmailMessagePayload,
+): ExtractedMessageBody {
   if (!payload) {
-    return "";
+    return {};
   }
 
   const extracted = extractFromPart(payload);
 
-  if (extracted.plain) {
-    return extracted.plain.trim();
-  }
-
-  if (extracted.html) {
-    return stripHtml(extracted.html);
-  }
-
-  return "";
+  return {
+    html: extracted.html || undefined,
+    text: extracted.plain || undefined,
+  };
 }

@@ -4,8 +4,7 @@ import type {
 } from "@/features/assistant/types/assistant-action";
 
 export interface AssistantMutationHandlers {
-  openCompose: () => void;
-  fillCompose: (payload: ComposeEmailPayload) => void;
+  showAssistantComposeDraft: (payload: ComposeEmailPayload) => void;
 }
 
 export function executeAssistantActions(
@@ -14,8 +13,7 @@ export function executeAssistantActions(
 ): void {
   for (const action of actions) {
     if (action.type === "compose_email") {
-      handlers.openCompose();
-      handlers.fillCompose(action.payload);
+      handlers.showAssistantComposeDraft(action.payload);
     }
   }
 }

@@ -9,14 +9,19 @@ import {
   FiX,
 } from "react-icons/fi";
 
+import { AssistantMessageRenderer } from "@/features/assistant/components/assistant-message-renderer";
+import { AssistantTypingIndicator } from "@/features/assistant/components/assistant-typing-indicator";
+import type { AssistantChatMessage } from "@/features/assistant/types/assistant-message";
+import type { ComposeDraft } from "@/features/mail/types/compose-draft";
 import { Button, ScrollArea, Textarea } from "@/shared/ui";
 import { cn } from "@/shared/lib/utils";
 
-export type AssistantChatMessage = {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-};
+export type {
+  AssistantChatMessage,
+  AssistantComposeDraftMessage,
+  AssistantMessageKind,
+  AssistantTextMessage,
+} from "@/features/assistant/types/assistant-message";
 
 const SUGGESTION_PROMPTS = [
   "Draft an email",
@@ -32,6 +37,10 @@ interface AssistantPanelProps {
   isLoading: boolean;
   onSubmitPrompt: () => void;
   onSuggestionSelect: (prompt: string) => void;
+  activeComposeMessageId?: string | null;
+  composeDraft: ComposeDraft;
+  onComposeDraftChange: (draft: ComposeDraft) => void;
+  onComposeSend: () => void;
   onDevCompose?: () => void;
   onDevConfirmSend?: () => void;
 }
@@ -43,6 +52,10 @@ export function AssistantPanel({
   isLoading,
   onSubmitPrompt,
   onSuggestionSelect,
+  activeComposeMessageId,
+  composeDraft,
+  onComposeDraftChange,
+  onComposeSend,
   onDevCompose,
   onDevConfirmSend,
 }: AssistantPanelProps) {
@@ -50,6 +63,19 @@ export function AssistantPanel({
   const [isDebugOpen, setIsDebugOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fabRef = useRef<HTMLButtonElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  const focusInput = () => {
+    requestAnimationFrame(() => {
+      inputRef.current?.focus();
+    });
+  };
+
+  useEffect(() => {
+    if (isOpen && !isLoading) {
+      focusInput();
+    }
+  }, [isOpen, isLoading]);
 
   useEffect(() => {
     if (messages.length === 0) {
@@ -59,7 +85,7 @@ export function AssistantPanel({
     requestAnimationFrame(() => {
       scrollRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
     });
-  }, [messages, isLoading]);
+  }, [messages, isLoading, composeDraft]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -80,7 +106,9 @@ export function AssistantPanel({
     return () => window.removeEventListener("keydown", handleKeyDown, true);
   }, [isOpen]);
 
-  const handleInputKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleInputKeyDown = (
+    event: React.KeyboardEvent<HTMLTextAreaElement>,
+  ) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       onSubmitPrompt();
@@ -92,17 +120,17 @@ export function AssistantPanel({
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+    <div className="pointer-events-none fixed bottom-6 right-6 z-50">
       <div
         id="commandmail-ai-panel"
         role="region"
         aria-label="CommandMail AI assistant"
         aria-hidden={!isOpen}
         className={cn(
-          "flex w-[min(420px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-border/60 bg-background shadow-xl transition-all duration-200",
+          "absolute right-0 bottom-full mb-3 flex w-[min(420px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-border/60 bg-background shadow-xl transition-all duration-200",
           "h-[min(600px,calc(100dvh-6rem))]",
           isOpen
-            ? "pointer-events-auto translate-y-0 opacity-100"
+            ? "pointer-events-auto visible translate-y-0 opacity-100"
             : "pointer-events-none invisible translate-y-2 opacity-0",
         )}
       >
@@ -112,12 +140,15 @@ export function AssistantPanel({
               id="commandmail-ai-title"
               className="flex items-center gap-2 truncate text-sm font-semibold tracking-tight"
             >
-              <FiMessageCircle className="size-4 shrink-0 text-primary" aria-hidden />
+              <FiMessageCircle
+                className="size-4 shrink-0 text-primary"
+                aria-hidden
+              />
               <span className="truncate">CommandMail AI</span>
             </h2>
             {isLoading ? (
               <p className="text-xs text-muted-foreground" aria-live="polite">
-                Thinking...
+                Typing...
               </p>
             ) : null}
           </div>
@@ -146,7 +177,10 @@ export function AssistantPanel({
                       key={prompt}
                       type="button"
                       className="rounded-full border border-border/60 bg-muted/30 px-3 py-1.5 text-xs text-foreground/90 transition-colors hover:bg-muted/60"
-                      onClick={() => onSuggestionSelect(prompt)}
+                      onClick={() => {
+                        onSuggestionSelect(prompt);
+                        focusInput();
+                      }}
                     >
                       {prompt}
                     </button>
@@ -156,23 +190,18 @@ export function AssistantPanel({
             ) : null}
 
             {messages.map((message) => (
-              <div
+              <AssistantMessageRenderer
                 key={message.id}
-                className={cn(
-                  "max-w-[92%] text-sm leading-relaxed",
-                  message.role === "user"
-                    ? "ml-auto rounded-2xl bg-primary px-3 py-2 text-primary-foreground"
-                    : "text-foreground/90",
-                )}
-              >
-                {message.content}
-              </div>
+                message={message}
+                activeComposeMessageId={activeComposeMessageId}
+                composeDraft={composeDraft}
+                onComposeDraftChange={onComposeDraftChange}
+                onComposeSend={onComposeSend}
+              />
             ))}
 
-            {isLoading && messages.length > 0 ? (
-              <p className="text-sm text-muted-foreground" aria-live="polite">
-                Thinking...
-              </p>
+            {isLoading ? (
+              <AssistantTypingIndicator className="text-sm text-foreground/90" />
             ) : null}
 
             <div ref={scrollRef} />
@@ -275,7 +304,7 @@ export function AssistantPanel({
         aria-expanded={isOpen}
         aria-controls="commandmail-ai-panel"
         className={cn(
-          "h-11 gap-2 rounded-full px-4 shadow-lg",
+          "pointer-events-auto h-11 gap-2 rounded-full px-4 shadow-lg",
           isOpen && "ring-2 ring-primary/20",
         )}
       >

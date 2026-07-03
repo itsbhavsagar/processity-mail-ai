@@ -105,6 +105,7 @@ export async function InboxWorkspace({ conversationId }: InboxWorkspaceProps) {
       conversation={conversation}
       conversationError={conversationError}
       conversationId={conversationId}
+      currentUserEmail={session.user?.email ?? undefined}
     />
   );
 }

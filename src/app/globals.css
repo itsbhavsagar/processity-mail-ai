@@ -112,3 +112,24 @@
     @apply font-sans;
   }
 }
+
+@layer components {
+  .email-html-body {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .email-html-body a {
+    color: var(--primary);
+    text-decoration: underline;
+  }
+
+  .email-html-body img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .email-html-body table {
+    max-width: 100%;
+  }
+}

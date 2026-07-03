@@ -13,19 +13,21 @@ interface InboxThreadListProps {
   isPending?: boolean;
 }
 
+const THREAD_DATE_LOCALE = "en-GB";
+
 function formatReceivedDate(isoDate: string): string {
   const date = new Date(isoDate);
   const now = new Date();
   const isToday = date.toDateString() === now.toDateString();
 
   if (isToday) {
-    return date.toLocaleTimeString(undefined, {
+    return date.toLocaleTimeString(THREAD_DATE_LOCALE, {
       hour: "numeric",
       minute: "2-digit",
     });
   }
 
-  return date.toLocaleDateString(undefined, {
+  return date.toLocaleDateString(THREAD_DATE_LOCALE, {
     month: "short",
     day: "numeric",
   });

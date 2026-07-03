@@ -4,7 +4,9 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { ComposeDraftForm } from "@/features/mail/components/compose-draft-form";
 import { sendEmail } from "@/features/mail/actions/send-email";
+import type { ComposeDraft } from "@/features/mail/types/compose-draft";
 import {
   Button,
   Dialog,
@@ -13,27 +15,15 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  Input,
-  Label,
-  Textarea,
 } from "@/shared/ui";
 
-export interface ComposeDraftFields {
-  to: string;
-  subject: string;
-  body: string;
-}
-
-export const emptyComposeDraft: ComposeDraftFields = {
-  to: "",
-  subject: "",
-  body: "",
-};
+export type { ComposeDraft } from "@/features/mail/types/compose-draft";
+export { emptyComposeDraft } from "@/features/mail/types/compose-draft";
 
 interface ComposeEmailDialogProps {
   open: boolean;
-  draft: ComposeDraftFields;
-  onDraftChange: (draft: ComposeDraftFields) => void;
+  draft: ComposeDraft;
+  onDraftChange: (draft: ComposeDraft) => void;
   onOpenChange: (open: boolean) => void;
   onSent?: () => void;
 }
@@ -115,54 +105,12 @@ export function ComposeEmailDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="compose-to">To</Label>
-            <Input
-              id="compose-to"
-              name="to"
-              type="text"
-              placeholder="name@example.com"
-              autoComplete="email"
-              value={draft.to}
-              onChange={(event) =>
-                onDraftChange({ ...draft, to: event.target.value })
-              }
-              disabled={isPending}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="compose-subject">Subject</Label>
-            <Input
-              id="compose-subject"
-              name="subject"
-              type="text"
-              placeholder="Subject"
-              value={draft.subject}
-              onChange={(event) =>
-                onDraftChange({ ...draft, subject: event.target.value })
-              }
-              disabled={isPending}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="compose-body">Message</Label>
-            <Textarea
-              id="compose-body"
-              name="body"
-              placeholder="Write your message..."
-              className="min-h-40"
-              value={draft.body}
-              onChange={(event) =>
-                onDraftChange({ ...draft, body: event.target.value })
-              }
-              disabled={isPending}
-              required
-            />
-          </div>
+          <ComposeDraftForm
+            draft={draft}
+            onDraftChange={onDraftChange}
+            disabled={isPending}
+            fieldIdPrefix="manual-compose"
+          />
 
           {errorMessage ? (
             <p

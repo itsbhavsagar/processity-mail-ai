@@ -24,6 +24,7 @@ interface ConversationViewProps {
   activeThreadId?: string;
   isLoading: boolean;
   conversationError: "auth" | "unknown" | false;
+  currentUserEmail?: string;
   mode?: ConversationViewMode;
   canToggleFocusMode?: boolean;
   onToggleFocusMode?: () => void;
@@ -151,6 +152,7 @@ export function ConversationView({
   activeThreadId,
   isLoading,
   conversationError,
+  currentUserEmail,
   mode = "default",
   canToggleFocusMode = false,
   onToggleFocusMode,
@@ -178,7 +180,7 @@ export function ConversationView({
   return (
     <Card
       className={cn(
-        "flex h-full min-h-0 flex-col",
+        "flex h-full min-h-0 flex-col overflow-hidden",
         isFocus
           ? "border-0 bg-transparent shadow-none"
           : "border-border/60 bg-card/80 shadow-sm",
@@ -215,11 +217,11 @@ export function ConversationView({
           </div>
         ) : null}
 
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
             <CardTitle
               className={cn(
-                "font-semibold leading-snug tracking-tight",
+                "wrap-break-word font-semibold leading-snug tracking-tight ",
                 isFocus ? "text-xl sm:text-2xl" : "text-lg",
               )}
             >
@@ -249,8 +251,14 @@ export function ConversationView({
         </div>
       </CardHeader>
 
-      <ScrollArea className="min-h-0 flex-1">
-        <ConversationMessages conversation={conversation} mode={mode} />
+      <ScrollArea className="h-0 min-h-0 flex-1 overscroll-y-contain">
+        <div className="min-w-0 max-w-full overflow-x-hidden pb-6">
+          <ConversationMessages
+            conversation={conversation}
+            mode={mode}
+            currentUserEmail={currentUserEmail}
+          />
+        </div>
       </ScrollArea>
     </Card>
   );

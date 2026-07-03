@@ -20,14 +20,22 @@ AI-native email workspace built on Next.js. Gmail is the first provider integrat
 flowchart TD
     User[User] --> UI[React UI]
     UI --> SC[Server Components]
+    UI --> AP[Assistant Panel]
+    AP --> API2[/api/assistant/]
+    API2 --> Groq[Groq LLM]
+    AP --> Executor[Action Executor]
+    Executor --> MailActions[Mail Server Actions]
     SC --> Auth[Auth.js Session]
     SC --> Provider[Gmail Provider]
+    MailActions --> Provider
     Provider --> API[Gmail REST API]
     Provider --> Domain[Mail Domain Models]
     Domain --> UI
 ```
 
 **Data path:** User → Server Components → Auth.js → Gmail provider → Gmail REST API → `MailThread` / `MailConversation` → React UI.
+
+**Assistant path:** User prompt → `/api/assistant` (Groq, Zod-validated) → typed action → Action Executor → the same mail Server Actions the UI uses → React UI. See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full diagram.
 
 ## Current screens
 
@@ -178,7 +186,7 @@ Unauthenticated requests to `/app` redirect to `/login`. Authenticated users on 
 - **Normalization:** Gmail responses are mapped to `MailThread` and `MailConversation` before crossing into `features/mail/`
 - **MIME:** Plain-text preferred; HTML stripped as fallback for message bodies
 
-The mail UI never imports Gmail response types. The product layer communicates only through `MailThread` and `MailConversation`.
+The mail UI never imports Gmail response types. The product layer communicates only through `MailThread`, `MailConversation`, `MailDraft`, and `ReplyMailDraft`.
 
 ## Conversation viewer
 
@@ -193,7 +201,9 @@ Focus Mode is a **presentation mode** of the same `ConversationView` — not a s
 
 | Normal workspace | Focus Mode |
 |------------------|------------|
-| Sidebar · Inbox · Conversation · Assistant | Conversation only (shell chrome hidden) |
+| Sidebar · Thread list · Conversation | Conversation only (shell chrome hidden) |
+
+The assistant panel floats independently of this layout (fixed bottom-right overlay), so it stays available in both modes.
 
 - **Enter:** Expand icon in conversation header, or **`F`** when a conversation is open
 - **Exit:** Minimize icon, **`Esc`**, **`F`**, or **Back to inbox** (mobile returns to inbox list)
@@ -258,9 +268,18 @@ Google OAuth client must include redirect URI: `http://localhost:3000/api/auth/c
 ## Screenshots
 
 <!-- TODO: Add screenshot — Login page -->
-<!-- TODO: Add screenshot — Inbox workspace (desktop) -->
+<!-- TODO: Add screenshot — Mailbox workspace (desktop) -->
 <!-- TODO: Add screenshot — Conversation viewer -->
 <!-- TODO: Add screenshot — Conversation Focus Mode -->
+<!-- TODO: Add demo video — assistant composing, searching, and replying via natural language -->
+
+## What I'd improve with more time
+
+- Real-time sync (Gmail push notifications or polling) — the one graded requirement not started
+- UI filter controls (date range, sender, keyword, read/unread), backed by the same Gmail query logic the assistant already uses
+- Forward via assistant, and an explicit "are you sure?" confirmation before send
+- Tests around the assistant's action parsing/validation and the mail Server Actions
+- Decide on the local intent router (`local-intent-router.ts`) — it fast-paths a few common replies like "send it" around the LLM call, but now that the prompt is small it may not be worth the extra place that interprets natural language
 
 ## Roadmap
 

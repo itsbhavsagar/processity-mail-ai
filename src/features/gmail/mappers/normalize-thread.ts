@@ -12,12 +12,6 @@ function getHeader(
   );
 }
 
-function parseSender(from: string): string {
-  const sender = parseMailboxList(from)[0];
-
-  return sender ? getMailboxDisplayName(sender) : "Unknown";
-}
-
 export function normalizeThread(gmailThread: GmailThreadResponse): MailThread {
   const messages = gmailThread.messages ?? [];
   const latestMessage = messages.at(-1) ?? messages[0];
@@ -27,9 +21,12 @@ export function normalizeThread(gmailThread: GmailThreadResponse): MailThread {
   const dateValue = getHeader(headers, "Date");
   const receivedAt = dateValue ? new Date(dateValue) : new Date();
 
+  const senderAddress = parseMailboxList(from)[0];
+
   return {
     id: gmailThread.id,
-    sender: parseSender(from) || "Unknown",
+    sender: senderAddress ? getMailboxDisplayName(senderAddress) : "Unknown",
+    senderEmail: senderAddress?.email || undefined,
     subject,
     snippet: gmailThread.snippet ?? latestMessage?.snippet ?? "",
     receivedAt: receivedAt.toISOString(),

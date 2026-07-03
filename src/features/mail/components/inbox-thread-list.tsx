@@ -6,6 +6,8 @@ import type { MailThread } from "@/features/mail/types/mail-thread";
 import { Card, CardContent, ScrollArea } from "@/shared/ui";
 import { cn } from "@/shared/lib/utils";
 
+import { SenderAvatar } from "./sender-avatar";
+
 interface InboxThreadListProps {
   threads: MailThread[];
   activeThreadId?: string;
@@ -84,14 +86,16 @@ export function InboxThreadList({
                     isActive
                       ? "border-l-primary bg-muted/60"
                       : "border-l-transparent hover:bg-muted/40",
+                    thread.isUnread && !isActive && "bg-muted/30",
                     isPending && "cursor-wait opacity-70",
                   )}
                 >
-                  <span
-                    aria-hidden
+                  <SenderAvatar
+                    name={thread.sender}
+                    email={thread.senderEmail}
+                    size="sm"
                     className={cn(
-                      "mt-2 size-2 shrink-0 rounded-full",
-                      thread.isUnread ? "bg-primary" : "bg-transparent",
+                      thread.isUnread && "ring-1 ring-primary/25",
                     )}
                   />
                   <div className="min-w-0 flex-1 space-y-1">

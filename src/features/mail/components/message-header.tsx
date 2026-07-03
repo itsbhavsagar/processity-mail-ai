@@ -100,7 +100,11 @@ export function MessageHeader({
   return (
     <header className="relative z-10 min-w-0">
       <div className="flex gap-3 sm:gap-4">
-        <SenderAvatar sender={message.sender} />
+        <SenderAvatar
+          name={senderName}
+          email={senderEmail}
+          size="md"
+        />
 
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">

@@ -6,6 +6,8 @@ import type { AssistantDraft } from "@/features/mail/types/compose-draft";
 import { getMailboxDisplayName } from "@/features/mail/lib/parse-mailbox";
 import type { MailboxId } from "@/shared/constants";
 
+export const MAX_SEARCH_RESULTS = 5;
+
 export type AssistantMailContext = {
   mailbox: MailboxId;
   conversationId?: string;
@@ -18,7 +20,6 @@ export function toSearchResults(threads: MailThread[]): AssistantSearchResult[] 
     threadId: thread.id,
     from: thread.sender,
     subject: thread.subject,
-    receivedAt: thread.receivedAt,
   }));
 }
 
@@ -30,20 +31,31 @@ export function buildAssistantContext(options: {
 }): AssistantContext {
   const latestMessage = options.mail.conversation?.messages.at(-1);
 
-  return {
+  const context: AssistantContext = {
     currentMailbox: options.mail.mailbox,
-    currentConversation:
-      options.mail.conversation && options.mail.conversationId
-        ? {
-            threadId: options.mail.conversationId,
-            subject: options.mail.conversation.subject,
-            sender: latestMessage
-              ? getMailboxDisplayName(latestMessage.sender)
-              : "Unknown",
-          }
-        : null,
     hasActiveDraft: options.hasActiveDraft,
-    activeDraft: toActiveDraftContext(options.activeDraft),
-    searchResults: options.searchResults,
   };
+
+  if (options.mail.conversation && options.mail.conversationId) {
+    context.currentConversation = {
+      threadId: options.mail.conversationId,
+      subject: options.mail.conversation.subject,
+      sender: latestMessage
+        ? getMailboxDisplayName(latestMessage.sender)
+        : "Unknown",
+    };
+  }
+
+  if (options.hasActiveDraft) {
+    const activeDraft = toActiveDraftContext(options.activeDraft);
+    if (activeDraft) {
+      context.activeDraft = activeDraft;
+    }
+  }
+
+  if (options.searchResults?.length) {
+    context.searchResults = options.searchResults.slice(0, MAX_SEARCH_RESULTS);
+  }
+
+  return context;
 }

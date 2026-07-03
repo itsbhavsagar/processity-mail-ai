@@ -16,13 +16,28 @@ Review the changes, then say "Send it" when you're ready—or keep editing.`,
 
   unavailable: "The assistant is unavailable. Try again in a moment.",
 
+  temporarilyUnavailable:
+    "I'm temporarily unavailable right now. Please try again in a little while.",
+
+  rateLimitExceeded:
+    "I've reached my AI usage limit for now. Please try again in a few minutes.",
+
+  sendingEmail: "Sending your email...",
+  emailSent: "Your email has been sent.",
+  emailSendFailed: "I couldn't send your email. Please try again.",
+
   composeCard: {
+    draftReady: "Draft ready",
+    draftReadyHint: "Suggested actions",
     preparing: "Preparing draft...",
     preparingRevise: "Updating draft...",
     writing: "Writing draft...",
     writingRevise: "Updating draft...",
-    sending: "Sending...",
+    sending: "Sending…",
     sentTitle: "Email sent",
+    failedTitle: "Failed to send",
+    failedDescription: "Something went wrong. You can edit the draft and try again.",
+    retryButton: "Retry",
     draftTitle: "Draft email",
     replyTitle: "Reply",
     replyPreparing: "Preparing reply...",
@@ -44,5 +59,14 @@ Review the changes, then say "Send it" when you're ready—or keep editing.`,
     closeLabel: "Close assistant",
     sendLabel: "Send message",
     voiceLabel: "Voice input (coming soon)",
+  },
+
+  localIntent: {
+    greeting:
+      "Hi! I can help you compose email, search your inbox, or open a thread. What would you like to do?",
+    thanks: "You're welcome! Let me know if you need anything else.",
+    help: "You can ask me to draft or send email, search your inbox, open a thread, or reply to the conversation you're viewing.",
+    draftDiscarded: "Draft discarded.",
+    searchFirst: "Search for emails first, then I can open one for you.",
   },
 } as const;

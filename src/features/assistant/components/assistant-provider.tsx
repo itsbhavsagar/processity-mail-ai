@@ -16,6 +16,16 @@ import { toast } from "sonner";
 import { AssistantPanel } from "@/features/assistant/components/assistant-panel";
 import { ASSISTANT_COPY } from "@/features/assistant/constants";
 import { executeAssistantActions } from "@/features/assistant/executor/execute-assistant-action";
+import { trimAssistantMessagesForApi } from "@/features/assistant/lib/trim-assistant-request";
+import {
+  buildAssistantCacheKey,
+  getCachedAssistantResponse,
+  setCachedAssistantResponse,
+} from "@/features/assistant/lib/assistant-response-cache";
+import {
+  matchLocalIntent,
+  type LocalIntentResult,
+} from "@/features/assistant/lib/local-intent-router";
 import {
   buildAssistantContext,
   toSearchResults,
@@ -26,6 +36,7 @@ import {
   findActiveDraftMessage,
   resolveActiveDraft,
   supersedeDraftMessages,
+  supersedeOtherDraftMessages,
   toApiMessageContent,
 } from "@/features/assistant/lib/assistant-message-utils";
 import {
@@ -329,22 +340,22 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
             status: "draft",
             variant,
           });
-          typeAssistantText(
-            variant === "revise"
-              ? ASSISTANT_COPY.draftUpdated
-              : ASSISTANT_COPY.draftReady,
-            () => setAssistantBusy(false),
-          );
+          setAssistantBusy(false);
         },
       );
     },
-    [applyLiveDraft, createAnimationSchedule, typeAssistantText, updateComposeMessage],
+    [applyLiveDraft, createAnimationSchedule, updateComposeMessage],
   );
 
   const updateComposeDraft = useCallback((draft: AssistantDraft) => {
     composeDraftRef.current = draft;
     setComposeDraft(draft);
-  }, []);
+
+    const messageId = activeComposeMessageIdRef.current;
+    if (messageId) {
+      updateComposeMessage(messageId, { draft });
+    }
+  }, [updateComposeMessage]);
 
   const openManualCompose = useCallback(() => {
     clearFillAnimation();
@@ -371,6 +382,9 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       if (updateExisting && activeComposeMessageIdRef.current) {
         const messageId = activeComposeMessageIdRef.current;
         clearFillAnimation();
+        setAssistantMessages((current) =>
+          supersedeOtherDraftMessages(current, messageId),
+        );
         updateComposeDraft(emptyComposeDraft);
         updateComposeMessage(messageId, {
           content: "",
@@ -399,7 +413,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       };
 
       setAssistantMessages((current) => [
-        ...supersedeDraftMessages(current),
+        ...supersedeOtherDraftMessages(current, messageId),
         composeMessage,
       ]);
 
@@ -435,6 +449,9 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       if (updateExisting && activeComposeMessageIdRef.current) {
         const messageId = activeComposeMessageIdRef.current;
         clearFillAnimation();
+        setAssistantMessages((current) =>
+          supersedeOtherDraftMessages(current, messageId),
+        );
         updateComposeDraft(emptyReplyDraft);
         updateComposeMessage(messageId, {
           content: "",
@@ -463,7 +480,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       };
 
       setAssistantMessages((current) => [
-        ...supersedeDraftMessages(current),
+        ...supersedeOtherDraftMessages(current, messageId),
         replyMessage,
       ]);
 
@@ -487,9 +504,10 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
 
   const markActiveDraftSendFailed = useCallback(() => {
     const messageId = activeComposeMessageIdRef.current;
+    const draft = composeDraftRef.current;
 
     if (messageId) {
-      updateComposeMessage(messageId, { status: "draft" });
+      updateComposeMessage(messageId, { status: "failed", draft });
     }
   }, [updateComposeMessage]);
 
@@ -531,6 +549,16 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       const result = isReplyDraft(draft)
         ? await sendReplyEmail(formData)
         : await sendEmail(formData);
+
+      if (process.env.NODE_ENV === "development") {
+        console.log("[CommandMail AI]", {
+          type: "send_email_result",
+          kind: draft.kind,
+          success: result.success,
+          error: result.success ? undefined : result.error,
+          message: result.success ? undefined : result.message,
+        });
+      }
 
       if (result.success) {
         toast.success(isReplyDraft(draft) ? "Reply sent" : "Email sent", {
@@ -583,8 +611,31 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       const isDraftRevision = hasDraftAction && Boolean(activeMessage);
 
       let thought = response.thought;
+      const shouldSendDraft = wantsSend && canSendActiveDraft();
 
-      if (wantsSend && !canSendActiveDraft()) {
+      if (shouldSendDraft) {
+        markActiveDraftSending();
+        void executeAssistantActions(response.actions, {
+          showAssistantComposeDraft: (payload) => {
+            showAssistantComposeDraft(payload, isDraftRevision);
+          },
+          showAssistantReplyDraft: (payload) => {
+            showAssistantReplyDraft(payload, isDraftRevision);
+          },
+          applySearchEmails: applySearchEmails,
+          openEmail: (payload) => {
+            openEmail(payload.threadId);
+          },
+          sendEmail: () => {
+            sendCompose();
+          },
+        }).finally(() => {
+          setAssistantBusy(false);
+        });
+        return;
+      }
+
+      if (wantsSend && !shouldSendDraft) {
         thought = ASSISTANT_COPY.noActiveDraft;
       }
 
@@ -601,7 +652,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
             openEmail(payload.threadId);
           },
           sendEmail: () => {
-            if (canSendActiveDraft()) {
+            if (shouldSendDraft) {
               sendCompose();
             }
           },
@@ -615,6 +666,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     [
       applySearchEmails,
       canSendActiveDraft,
+      markActiveDraftSending,
       openEmail,
       sendCompose,
       showAssistantComposeDraft,
@@ -623,68 +675,194 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     ],
   );
 
-  const submitAssistantPrompt = useCallback(async () => {
-    const trimmed = assistantInput.trim();
-    if (!trimmed || assistantLoading || assistantBusy) {
+  const getActiveDraftStatus = useCallback(() => {
+    const messageId = activeComposeMessageIdRef.current;
+    if (!messageId) {
+      return null;
+    }
+
+    const message = assistantMessagesRef.current.find(
+      (entry) => entry.id === messageId,
+    );
+
+    return message?.kind === "compose_draft" ? message.status : null;
+  }, []);
+
+  const appendAssistantText = useCallback((text: string) => {
+    if (!text.trim()) {
+      setAssistantBusy(false);
       return;
     }
 
     setAssistantMessages((current) => [
       ...current,
-      createTextMessage("user", trimmed),
+      createTextMessage("assistant", text),
     ]);
-    setAssistantInput("");
+    setAssistantBusy(false);
+  }, []);
+
+  const discardActiveDraft = useCallback(() => {
     clearFillAnimation();
-    setTypingAssistantText(null);
-    setAssistantBusy(true);
-    setAssistantLoading(true);
+    setAssistantMessages((current) => supersedeDraftMessages(current));
+    clearActiveComposeMessage();
+    updateComposeDraft(emptyComposeDraft);
+  }, [clearActiveComposeMessage, clearFillAnimation, updateComposeDraft]);
 
-    const { hasActiveDraft, activeDraft } = getActiveDraftContext();
-    const searchResults = activeSearchQuery
-      ? toSearchResults(searchThreads)
-      : null;
-    const mail = mailContextRef.current;
+  const handleLocalIntent = useCallback(
+    (intent: LocalIntentResult) => {
+      switch (intent.kind) {
+        case "send_draft":
+          markActiveDraftSending();
+          sendCompose();
+          setAssistantBusy(false);
+          break;
+        case "retry_send":
+          sendCompose();
+          setAssistantBusy(false);
+          break;
+        case "open_email":
+          openEmail(intent.threadId);
+          setAssistantBusy(false);
+          break;
+        case "discard_draft":
+          discardActiveDraft();
+          appendAssistantText(ASSISTANT_COPY.localIntent.draftDiscarded);
+          break;
+        case "assistant_response":
+          if (intent.response.actions.length > 0) {
+            processAssistantResponse(intent.response);
+          } else {
+            appendAssistantText(intent.response.thought);
+          }
+          break;
+      }
+    },
+    [
+      appendAssistantText,
+      discardActiveDraft,
+      markActiveDraftSending,
+      openEmail,
+      processAssistantResponse,
+      sendCompose,
+    ],
+  );
 
-    try {
-      const response = await requestAssistantResponse({
-        messages: [
-          ...assistantMessages.map((message) => ({
-            role: message.role,
-            content: toApiMessageContent(message),
-          })),
-          { role: "user", content: trimmed },
-        ],
-        context: buildAssistantContext({
-          mail,
-          hasActiveDraft,
-          activeDraft,
-          searchResults,
-        }),
+  const runAssistantPrompt = useCallback(
+    async (prompt: string) => {
+      const trimmed = prompt.trim();
+      if (!trimmed || assistantLoading || assistantBusy) {
+        return;
+      }
+
+      setAssistantMessages((current) => [
+        ...current,
+        createTextMessage("user", trimmed),
+      ]);
+      clearFillAnimation();
+      setTypingAssistantText(null);
+      setAssistantBusy(true);
+
+      const { hasActiveDraft, activeDraft } = getActiveDraftContext();
+      const searchResults = activeSearchQuery
+        ? toSearchResults(searchThreads)
+        : null;
+      const mail = mailContextRef.current;
+      const priorMessages = assistantMessagesRef.current;
+      const { canSend } = resolveActiveDraft(
+        activeComposeMessageIdRef.current,
+        priorMessages,
+        composeDraftRef.current,
+      );
+      const draftStatus = getActiveDraftStatus();
+      const context = buildAssistantContext({
+        mail,
+        hasActiveDraft,
+        activeDraft,
+        searchResults,
       });
 
-      setAssistantLoading(false);
-      processAssistantResponse(response);
-    } catch (error) {
-      const message =
-        error instanceof AssistantClientError
-          ? error.message
-          : ASSISTANT_COPY.unavailable;
+      const localIntent = matchLocalIntent(trimmed, {
+        canSend,
+        hasActiveDraft,
+        draftStatus,
+        searchResults,
+      });
 
-      setAssistantLoading(false);
-      typeAssistantText(message, () => setAssistantBusy(false));
+      if (localIntent) {
+        if (process.env.NODE_ENV === "development") {
+          console.log("[CommandMail AI]", {
+            type: "local_intent",
+            intent: localIntent.kind,
+          });
+        }
+        handleLocalIntent(localIntent);
+        return;
+      }
+
+      const cacheKey = buildAssistantCacheKey(trimmed, context);
+      const cachedResponse = getCachedAssistantResponse(cacheKey);
+
+      if (cachedResponse) {
+        if (process.env.NODE_ENV === "development") {
+          console.log("[CommandMail AI]", {
+            type: "cache_hit",
+            cacheKey,
+          });
+        }
+        processAssistantResponse(cachedResponse);
+        return;
+      }
+
+      setAssistantLoading(true);
+
+      try {
+        const response = await requestAssistantResponse({
+          messages: trimAssistantMessagesForApi([
+            ...priorMessages.map((message) => ({
+              role: message.role,
+              content: toApiMessageContent(message),
+            })),
+            { role: "user", content: trimmed },
+          ]),
+          context,
+        });
+
+        setAssistantLoading(false);
+        setCachedAssistantResponse(cacheKey, response);
+        processAssistantResponse(response);
+      } catch (error) {
+        const message =
+          error instanceof AssistantClientError
+            ? error.message
+            : ASSISTANT_COPY.unavailable;
+
+        setAssistantLoading(false);
+        typeAssistantText(message, () => setAssistantBusy(false));
+      }
+    },
+    [
+      assistantBusy,
+      assistantLoading,
+      activeSearchQuery,
+      clearFillAnimation,
+      getActiveDraftContext,
+      getActiveDraftStatus,
+      handleLocalIntent,
+      processAssistantResponse,
+      searchThreads,
+      typeAssistantText,
+    ],
+  );
+
+  const submitAssistantPrompt = useCallback(async () => {
+    const trimmed = assistantInput.trim();
+    if (!trimmed) {
+      return;
     }
-  }, [
-    assistantInput,
-    assistantBusy,
-    assistantLoading,
-    assistantMessages,
-    activeSearchQuery,
-    clearFillAnimation,
-    processAssistantResponse,
-    getActiveDraftContext,
-    searchThreads,
-    typeAssistantText,
-  ]);
+
+    setAssistantInput("");
+    await runAssistantPrompt(trimmed);
+  }, [assistantInput, runAssistantPrompt]);
 
   const handleDevCompose = useCallback(() => {
     setAssistantBusy(true);
@@ -748,6 +926,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         composeDraft={composeDraft}
         onComposeDraftChange={updateComposeDraft}
         onComposeSend={sendCompose}
+        onRunPrompt={runAssistantPrompt}
         onDevCompose={
           process.env.NODE_ENV === "development" ? handleDevCompose : undefined
         }

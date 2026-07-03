@@ -87,7 +87,6 @@ export const assistantSearchResultSchema = z.object({
   threadId: z.string(),
   from: z.string(),
   subject: z.string(),
-  receivedAt: z.string(),
 });
 
 export type AssistantSearchResult = z.infer<typeof assistantSearchResultSchema>;
@@ -97,13 +96,11 @@ export const assistantChatMessageSchema = z.object({
   content: z.string().min(1),
 });
 
-export const assistantConversationContextSchema = z
-  .object({
-    threadId: z.string(),
-    subject: z.string(),
-    sender: z.string(),
-  })
-  .nullable();
+export const assistantConversationContextSchema = z.object({
+  threadId: z.string(),
+  subject: z.string(),
+  sender: z.string(),
+});
 
 const composeDraftContextSchema = z.object({
   kind: z.literal("compose"),
@@ -120,19 +117,17 @@ const replyDraftContextSchema = z.object({
   body: z.string(),
 });
 
-const activeDraftContextSchema = z
-  .discriminatedUnion("kind", [
-    composeDraftContextSchema,
-    replyDraftContextSchema,
-  ])
-  .nullable();
+const activeDraftContextSchema = z.discriminatedUnion("kind", [
+  composeDraftContextSchema,
+  replyDraftContextSchema,
+]);
 
 export const assistantContextSchema = z.object({
   currentMailbox: mailboxTypeSchema.default("inbox"),
-  currentConversation: assistantConversationContextSchema,
+  currentConversation: assistantConversationContextSchema.optional(),
   hasActiveDraft: z.boolean(),
-  activeDraft: activeDraftContextSchema,
-  searchResults: z.array(assistantSearchResultSchema).nullable(),
+  activeDraft: activeDraftContextSchema.optional(),
+  searchResults: z.array(assistantSearchResultSchema).optional(),
 });
 
 export type AssistantContext = z.infer<typeof assistantContextSchema>;
@@ -149,9 +144,11 @@ export type AssistantApiErrorCode =
   | "configuration"
   | "invalid_request"
   | "model_error"
-  | "validation_error";
+  | "validation_error"
+  | "rate_limit";
 
 export interface AssistantApiErrorBody {
   error: AssistantApiErrorCode;
   message: string;
+  providerDetail?: string;
 }

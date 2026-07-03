@@ -72,6 +72,10 @@ export function toApiMessageContent(message: AssistantChatMessage): string {
     return `${message.content}\n\n[Email is currently being sent.]`;
   }
 
+  if (message.status === "failed") {
+    return `${message.content}\n\n[Draft send failed — still editable.]`;
+  }
+
   const draftSummary = formatDraftSummary(message.draft);
 
   const summary = message.content
@@ -84,7 +88,45 @@ export function toApiMessageContent(message: AssistantChatMessage): string {
 export function isActiveDraftMessage(
   message: AssistantChatMessage | undefined,
 ): message is AssistantComposeDraftMessage {
-  return message?.kind === "compose_draft" && message.status === "draft";
+  return (
+    message?.kind === "compose_draft" &&
+    (message.status === "draft" || message.status === "failed")
+  );
+}
+
+export function isContextActiveDraftMessage(
+  message: AssistantChatMessage | undefined,
+): message is AssistantComposeDraftMessage {
+  return (
+    message?.kind === "compose_draft" &&
+    (message.status === "draft" ||
+      message.status === "sending" ||
+      message.status === "failed")
+  );
+}
+
+export function findActiveDraftMessage(
+  messageId: string | null,
+  messages: AssistantChatMessage[],
+): AssistantComposeDraftMessage | undefined {
+  if (!messageId) {
+    return undefined;
+  }
+
+  const message = messages.find((entry) => entry.id === messageId);
+  return isActiveDraftMessage(message) ? message : undefined;
+}
+
+export function findContextDraftMessage(
+  messageId: string | null,
+  messages: AssistantChatMessage[],
+): AssistantComposeDraftMessage | undefined {
+  if (!messageId) {
+    return undefined;
+  }
+
+  const message = messages.find((entry) => entry.id === messageId);
+  return isContextActiveDraftMessage(message) ? message : undefined;
 }
 
 export function supersedeDraftMessages(
@@ -102,16 +144,21 @@ export function supersedeDraftMessages(
   });
 }
 
-export function findActiveDraftMessage(
-  messageId: string | null,
+export function supersedeOtherDraftMessages(
   messages: AssistantChatMessage[],
-): AssistantComposeDraftMessage | undefined {
-  if (!messageId) {
-    return undefined;
-  }
+  activeMessageId: string,
+): AssistantChatMessage[] {
+  return messages.map((message) => {
+    if (
+      message.kind === "compose_draft" &&
+      message.id !== activeMessageId &&
+      isSupersedableDraftStatus(message.status)
+    ) {
+      return { ...message, status: "superseded" as const };
+    }
 
-  const message = messages.find((entry) => entry.id === messageId);
-  return isActiveDraftMessage(message) ? message : undefined;
+    return message;
+  });
 }
 
 export function canSendDraft(draft: AssistantDraft): boolean {
@@ -154,7 +201,7 @@ export function resolveActiveDraft(
   messages: AssistantChatMessage[],
   draft: AssistantDraft,
 ) {
-  const message = findActiveDraftMessage(messageId, messages);
+  const message = findContextDraftMessage(messageId, messages);
 
   if (!message) {
     return {
@@ -164,9 +211,13 @@ export function resolveActiveDraft(
     };
   }
 
+  const canSend =
+    (message.status === "draft" || message.status === "failed") &&
+    canSendDraft(draft);
+
   return {
     hasActiveDraft: true as const,
     activeDraft: draft,
-    canSend: canSendDraft(draft),
+    canSend,
   };
 }

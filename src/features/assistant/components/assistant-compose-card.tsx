@@ -6,15 +6,25 @@ import {
   isComposeTypingStatus,
   type AssistantComposeDraftStatus,
 } from "@/features/assistant/types/assistant-message";
-import { ASSISTANT_COPY } from "@/features/assistant/constants";
+import { ASSISTANT_COPY, ASSISTANT_DRAFT_ACTIONS } from "@/features/assistant/constants";
 import {
   isReplyDraft,
   type AssistantDraft,
 } from "@/features/mail/types/compose-draft";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Label,
+  Separator,
+  Textarea,
+} from "@/shared/ui";
+import { canSendDraft } from "@/features/assistant/lib/assistant-message-utils";
 import { cn } from "@/shared/lib/utils";
-import { FiCheckCircle, FiLoader } from "react-icons/fi";
-import { Label, Textarea } from "@/shared/ui";
+import { FiCheckCircle, FiLoader, FiXCircle } from "react-icons/fi";
 
 const SENT_TIME_LOCALE = "en-GB";
 
@@ -33,6 +43,8 @@ interface AssistantComposeCardProps {
   sentAt?: string;
   onDraftChange?: (draft: AssistantDraft) => void;
   onSend?: () => void;
+  onRetry?: () => void;
+  onRunPrompt?: (prompt: string) => void;
 }
 
 function ReplyDraftBody({
@@ -85,6 +97,46 @@ function ReplyDraftBody({
   );
 }
 
+function DraftActionBar({
+  onSend,
+  onRunPrompt,
+  canSend,
+}: {
+  onSend?: () => void;
+  onRunPrompt?: (prompt: string) => void;
+  canSend: boolean;
+}) {
+  return (
+    <div className="space-y-2.5">
+      <Separator />
+      <div className="space-y-2">
+        <p className="text-xs font-medium text-muted-foreground">
+          {ASSISTANT_COPY.composeCard.draftReadyHint}
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {onSend ? (
+            <Button type="button" size="sm" onClick={onSend} disabled={!canSend}>
+              {ASSISTANT_COPY.composeCard.sendButton}
+            </Button>
+          ) : null}
+          {ASSISTANT_DRAFT_ACTIONS.map((action) => (
+            <Button
+              key={action.prompt}
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={() => onRunPrompt?.(action.prompt)}
+              disabled={!onRunPrompt}
+            >
+              {action.label}
+            </Button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function AssistantComposeCard({
   draft,
   fieldIdPrefix,
@@ -93,18 +145,31 @@ export function AssistantComposeCard({
   sentAt,
   onDraftChange,
   onSend,
+  onRetry,
+  onRunPrompt,
 }: AssistantComposeCardProps) {
   const isReply = isReplyDraft(draft);
 
   if (status === "sent") {
     return (
-      <Card className="mt-2 gap-0 border-emerald-500/20 bg-emerald-500/5 py-0 shadow-none">
-        <CardHeader className="border-b border-border/60 px-3 py-2.5">
+      <Card
+        className={cn(
+          "mt-2 gap-0 border-emerald-500/30 bg-emerald-500/5 py-0 shadow-none",
+          "animate-in fade-in duration-300",
+        )}
+      >
+        <CardHeader className="border-b border-emerald-500/20 px-3 py-2.5">
           <CardTitle className="flex items-center gap-2 text-sm font-medium text-emerald-700 dark:text-emerald-400">
             <FiCheckCircle className="size-4 shrink-0" aria-hidden />
             {isReply
               ? ASSISTANT_COPY.composeCard.replySentTitle
               : ASSISTANT_COPY.composeCard.sentTitle}
+            <Badge
+              variant="outline"
+              className="ml-auto border-emerald-500/30 text-emerald-700 dark:text-emerald-400"
+            >
+              Sent
+            </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 px-3 py-3 text-sm">
@@ -147,6 +212,58 @@ export function AssistantComposeCard({
     );
   }
 
+  if (status === "failed") {
+    return (
+      <Card
+        className={cn(
+          "mt-2 gap-0 border-destructive/30 bg-destructive/5 py-0 shadow-none",
+          "animate-in fade-in duration-300",
+        )}
+      >
+        <CardHeader className="border-b border-destructive/20 px-3 py-2.5">
+          <CardTitle className="flex items-center gap-2 text-sm font-medium text-destructive">
+            <FiXCircle className="size-4 shrink-0" aria-hidden />
+            {ASSISTANT_COPY.composeCard.failedTitle}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 px-3 py-3">
+          <p
+            role="alert"
+            className="text-sm text-muted-foreground"
+          >
+            {ASSISTANT_COPY.composeCard.failedDescription}
+          </p>
+          {isReply ? (
+            <ReplyDraftBody
+              draft={draft}
+              fieldIdPrefix={fieldIdPrefix}
+              disabled={false}
+              readOnly={false}
+              activeField={null}
+              onDraftChange={onDraftChange}
+            />
+          ) : (
+            <ComposeDraftForm
+              draft={draft}
+              onDraftChange={onDraftChange}
+              disabled={false}
+              readOnly={false}
+              activeField={null}
+              fieldIdPrefix={fieldIdPrefix}
+            />
+          )}
+          <div className="flex justify-end gap-2">
+            {onRetry ? (
+              <Button type="button" size="sm" onClick={onRetry}>
+                {ASSISTANT_COPY.composeCard.retryButton}
+              </Button>
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (status === "preparing") {
     return (
       <Card className="mt-2 gap-0 py-0 shadow-none">
@@ -168,15 +285,14 @@ export function AssistantComposeCard({
   const isSending = status === "sending";
   const isTyping = isComposeTypingStatus(status);
   const activeField = activeFieldForComposeStatus(status, draft);
-  const canSend = isReply
-    ? draft.body.trim().length > 0
-    : draft.to.trim().length > 0;
+  const canSend = canSendDraft(draft);
 
   return (
     <Card
       className={cn(
-        "mt-2 gap-0 py-0 shadow-none transition-opacity duration-300",
+        "mt-2 gap-0 py-0 shadow-none transition-all duration-300",
         isTyping && "opacity-95",
+        isSending && "border-primary/20 bg-primary/5",
       )}
     >
       <CardHeader className="border-b border-border/60 px-3 py-2.5">
@@ -200,9 +316,19 @@ export function AssistantComposeCard({
           ) : status === "superseded" ? (
             ASSISTANT_COPY.composeCard.supersededTitle
           ) : isReply ? (
-            ASSISTANT_COPY.composeCard.replyTitle
+            <>
+              {ASSISTANT_COPY.composeCard.replyTitle}
+              <Badge variant="secondary" className="ml-auto font-normal">
+                {ASSISTANT_COPY.composeCard.draftReady}
+              </Badge>
+            </>
           ) : (
-            ASSISTANT_COPY.composeCard.draftTitle
+            <>
+              {ASSISTANT_COPY.composeCard.draftTitle}
+              <Badge variant="secondary" className="ml-auto font-normal">
+                {ASSISTANT_COPY.composeCard.draftReady}
+              </Badge>
+            </>
           )}
         </CardTitle>
       </CardHeader>
@@ -230,17 +356,12 @@ export function AssistantComposeCard({
             fieldIdPrefix={fieldIdPrefix}
           />
         )}
-        {onSend && isEditable ? (
-          <div className="flex justify-end">
-            <button
-              type="button"
-              className="inline-flex h-8 items-center justify-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-50"
-              onClick={onSend}
-              disabled={!canSend}
-            >
-              {ASSISTANT_COPY.composeCard.sendButton}
-            </button>
-          </div>
+        {isEditable && (onSend || onRunPrompt) ? (
+          <DraftActionBar
+            onSend={onSend}
+            onRunPrompt={onRunPrompt}
+            canSend={canSend}
+          />
         ) : null}
       </CardContent>
     </Card>

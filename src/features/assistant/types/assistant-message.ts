@@ -9,6 +9,7 @@ export type AssistantComposeDraftStatus =
   | "draft"
   | "sending"
   | "sent"
+  | "failed"
   | "superseded";
 
 export type AssistantComposeDraftMessage = {
@@ -52,7 +53,8 @@ export function isSupersedableDraftStatus(
     status === "preparing" ||
     isComposeTypingStatus(status) ||
     status === "draft" ||
-    status === "sending"
+    status === "sending" ||
+    status === "failed"
   );
 }
 

@@ -1,4 +1,7 @@
-import { ASSISTANT_COPY } from "@/features/assistant/constants";
+import {
+  getAssistantUserErrorMessage,
+  logAssistantProviderError,
+} from "@/features/assistant/lib/assistant-error-messages";
 import type {
   AssistantApiErrorBody,
   AssistantRequest,
@@ -30,9 +33,19 @@ export async function requestAssistantResponse(
 
   if (!response.ok || "error" in body) {
     const errorBody = body as AssistantApiErrorBody;
+
+    if (process.env.NODE_ENV === "development" || errorBody.providerDetail) {
+      logAssistantProviderError({
+        type: "assistant_api_error",
+        httpStatus: response.status,
+        code: errorBody.error,
+        providerDetail: errorBody.providerDetail ?? errorBody.message,
+      });
+    }
+
     throw new AssistantClientError(
       errorBody.error ?? "model_error",
-      errorBody.message ?? ASSISTANT_COPY.unavailable,
+      getAssistantUserErrorMessage(errorBody.error, errorBody.message),
     );
   }
 

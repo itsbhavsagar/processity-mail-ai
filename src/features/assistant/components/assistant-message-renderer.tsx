@@ -11,6 +11,8 @@ interface AssistantMessageRendererProps {
   composeDraft: AssistantDraft;
   onComposeDraftChange: (draft: AssistantDraft) => void;
   onComposeSend: () => void;
+  onRunPrompt?: (prompt: string) => void;
+  actionsDisabled?: boolean;
 }
 
 export function AssistantMessageRenderer({
@@ -19,15 +21,19 @@ export function AssistantMessageRenderer({
   composeDraft,
   onComposeDraftChange,
   onComposeSend,
+  onRunPrompt,
+  actionsDisabled = false,
 }: AssistantMessageRendererProps) {
   switch (message.kind) {
     case "text":
       return <AssistantTextMessageView message={message} />;
     case "compose_draft": {
+      if (message.status === "superseded") {
+        return null;
+      }
+
       const isLive =
-        message.id === activeComposeMessageId &&
-        message.status !== "sent" &&
-        message.status !== "superseded";
+        message.id === activeComposeMessageId && message.status !== "sent";
 
       return (
         <AssistantComposeDraftMessageView
@@ -36,6 +42,8 @@ export function AssistantMessageRenderer({
           composeDraft={composeDraft}
           onComposeDraftChange={onComposeDraftChange}
           onComposeSend={onComposeSend}
+          onRunPrompt={onRunPrompt}
+          actionsDisabled={actionsDisabled}
         />
       );
     }

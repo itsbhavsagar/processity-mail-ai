@@ -79,7 +79,7 @@ function ConversationEmptyState({ mode }: { mode: ConversationViewMode }) {
           No conversation selected
         </p>
         <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-          Choose a thread from your inbox to read the full conversation.
+          Choose a thread from your mailbox to read the full conversation.
         </p>
       </CardContent>
     </Card>

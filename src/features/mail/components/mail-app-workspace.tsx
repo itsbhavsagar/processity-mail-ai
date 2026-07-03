@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -26,6 +26,7 @@ import type {
   MailboxType,
 } from "@/features/assistant/types/assistant-action";
 import { getMailboxDisplayName } from "@/features/mail/lib/parse-mailbox";
+import { markThreadRead } from "@/features/mail/actions/mark-thread-read";
 import { sendEmail } from "@/features/mail/actions/send-email";
 import type { MailConversation } from "@/features/mail/types/mail-conversation";
 import type { MailThread } from "@/features/mail/types/mail-thread";
@@ -33,6 +34,7 @@ import {
   emptyComposeDraft,
   type ComposeDraft,
 } from "@/features/mail/types/compose-draft";
+import type { MailboxId } from "@/shared/constants";
 
 import { AppShell } from "@/app/(main)/app/_components/app-shell";
 
@@ -45,6 +47,7 @@ interface MailAppWorkspaceProps {
   conversation: MailConversation | null;
   conversationError: "auth" | "unknown" | false;
   conversationId?: string;
+  mailbox: MailboxId;
   currentUserEmail?: string;
   header: React.ReactNode;
 }
@@ -182,10 +185,15 @@ export function MailAppWorkspace({
   conversation,
   conversationError,
   conversationId,
+  mailbox,
   currentUserEmail,
   header,
 }: MailAppWorkspaceProps) {
   const router = useRouter();
+  const [readThreadIds, setReadThreadIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  const markedReadThreadsRef = useRef(new Set<string>());
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [composeDraft, setComposeDraft] =
@@ -209,6 +217,14 @@ export function MailAppWorkspace({
     conversationId && conversation && !conversationError,
   );
 
+  const displayThreads = useMemo(
+    () =>
+      threads.map((thread) =>
+        readThreadIds.has(thread.id) ? { ...thread, isUnread: false } : thread,
+      ),
+    [readThreadIds, threads],
+  );
+
   useEffect(() => {
     composeDraftRef.current = composeDraft;
   }, [composeDraft]);
@@ -220,6 +236,29 @@ export function MailAppWorkspace({
   useEffect(() => {
     assistantMessagesRef.current = assistantMessages;
   }, [assistantMessages]);
+
+  useEffect(() => {
+    if (!conversationId || conversationError || !conversation) {
+      return;
+    }
+
+    const thread = threads.find((item) => item.id === conversationId);
+
+    if (!thread?.isUnread || markedReadThreadsRef.current.has(conversationId)) {
+      return;
+    }
+
+    markedReadThreadsRef.current.add(conversationId);
+
+    void markThreadRead(conversationId).then((result) => {
+      if (!result.success) {
+        markedReadThreadsRef.current.delete(conversationId);
+        return;
+      }
+
+      setReadThreadIds((current) => new Set(current).add(conversationId));
+    });
+  }, [conversation, conversationError, conversationId, threads]);
 
   useEffect(() => {
     return () => {
@@ -304,7 +343,7 @@ export function MailAppWorkspace({
     };
   }, []);
   const startFillAnimation = useCallback(
-    (messageId: string, target: ComposeDraft) => {
+    (target: ComposeDraft) => {
       clearFillAnimation();
 
       const schedule = (callback: () => void, delay: number) => {
@@ -401,7 +440,7 @@ export function MailAppWorkspace({
         composeMessage,
       ]);
 
-      startFillAnimation(messageId, targetDraft);
+      startFillAnimation(targetDraft);
     },
     [
       applyLiveDraft,
@@ -568,7 +607,7 @@ export function MailAppWorkspace({
           { role: "user", content: trimmed },
         ],
         context: buildAssistantContext({
-          currentMailbox: "inbox",
+          currentMailbox: mailbox,
           conversationId,
           conversation,
           hasActiveDraft,
@@ -596,6 +635,7 @@ export function MailAppWorkspace({
     assistantMessages,
     conversation,
     conversationId,
+    mailbox,
     processAssistantResponse,
     getActiveDraftContext,
   ]);
@@ -671,10 +711,12 @@ export function MailAppWorkspace({
       <AppShell
         isFocusMode={isFocusMode}
         header={header}
+        activeMailbox={mailbox}
         sidebarActions={<ComposeButton onClick={openManualCompose} />}
         workspace={
           <InboxWorkspaceClient
-            threads={threads}
+            mailbox={mailbox}
+            threads={displayThreads}
             conversation={conversation}
             conversationError={conversationError}
             conversationId={conversationId}

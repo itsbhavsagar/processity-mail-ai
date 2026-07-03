@@ -26,6 +26,12 @@ export {
 export { Label } from "./label";
 export { Textarea } from "./textarea";
 export {
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+  PopoverTrigger,
+} from "./popover";
+export {
   Avatar,
   AvatarFallback,
   AvatarImage,

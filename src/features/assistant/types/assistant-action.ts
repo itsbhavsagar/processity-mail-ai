@@ -1,6 +1,13 @@
 import { z } from "zod";
 
-export const mailboxTypeSchema = z.enum(["inbox", "sent"]);
+import { MAILBOXES } from "@/shared/constants";
+
+const mailboxIds = MAILBOXES.map((mailbox) => mailbox.id) as [
+  (typeof MAILBOXES)[number]["id"],
+  ...(typeof MAILBOXES)[number]["id"][],
+];
+
+export const mailboxTypeSchema = z.enum(mailboxIds);
 export type MailboxType = z.infer<typeof mailboxTypeSchema>;
 
 const composeEmailActionSchema = z.object({

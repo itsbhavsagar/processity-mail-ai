@@ -5,9 +5,13 @@ import type { GmailThreadResponse } from "@/features/gmail/types/gmail-api";
 import type { MailConversation } from "@/features/mail/types/mail-conversation";
 import type { MailDraft } from "@/features/mail/types/mail-draft";
 import type { MailThread } from "@/features/mail/types/mail-thread";
+import {
+  getMailboxById,
+  type MailboxId,
+} from "@/shared/constants";
 
 const GMAIL_API_BASE = "https://gmail.googleapis.com/gmail/v1/users/me";
-const INBOX_THREAD_LIMIT = 20;
+const THREAD_LIST_LIMIT = 20;
 
 interface GmailThreadListResponse {
   threads?: Array<{ id: string }>;
@@ -38,9 +42,29 @@ async function gmailFetch<T>(path: string, accessToken: string): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export async function listInbox(accessToken: string): Promise<MailThread[]> {
+function buildThreadListPath(mailboxId: MailboxId): string {
+  const mailbox = getMailboxById(mailboxId);
+  const params = new URLSearchParams({
+    maxResults: String(THREAD_LIST_LIMIT),
+  });
+
+  if ("gmailLabel" in mailbox && mailbox.gmailLabel) {
+    params.set("labelIds", mailbox.gmailLabel);
+  }
+
+  if ("gmailQuery" in mailbox && mailbox.gmailQuery) {
+    params.set("q", mailbox.gmailQuery);
+  }
+
+  return `/threads?${params.toString()}`;
+}
+
+async function fetchThreadSummaries(
+  accessToken: string,
+  mailboxId: MailboxId,
+): Promise<MailThread[]> {
   const list = await gmailFetch<GmailThreadListResponse>(
-    `/threads?labelIds=INBOX&maxResults=${INBOX_THREAD_LIMIT}`,
+    buildThreadListPath(mailboxId),
     accessToken,
   );
 
@@ -77,6 +101,13 @@ export async function listInbox(accessToken: string): Promise<MailThread[]> {
   return fulfilledThreads.map(normalizeThread);
 }
 
+export async function listThreads(
+  accessToken: string,
+  mailboxId: MailboxId,
+): Promise<MailThread[]> {
+  return fetchThreadSummaries(accessToken, mailboxId);
+}
+
 export async function getConversation(
   accessToken: string,
   conversationId: string,
@@ -87,6 +118,28 @@ export async function getConversation(
   );
 
   return normalizeConversation(thread);
+}
+
+export async function markThreadAsRead(
+  accessToken: string,
+  threadId: string,
+): Promise<void> {
+  const response = await fetch(
+    `${GMAIL_API_BASE}/threads/${threadId}/modify`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ removeLabelIds: ["UNREAD"] }),
+      cache: "no-store",
+    },
+  );
+
+  if (!response.ok) {
+    throw new GmailApiError(response.status);
+  }
 }
 
 interface GmailSendMessageResponse {

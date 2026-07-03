@@ -1,1 +1,7 @@
-export { MAIL_NAVIGATION_ITEMS, type MailNavigationItem } from "./navigation";
+export {
+  getMailboxById,
+  MAILBOXES,
+  parseMailboxId,
+  type MailboxConfig,
+  type MailboxId,
+} from "./navigation";

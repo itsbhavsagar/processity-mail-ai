@@ -9,6 +9,7 @@ import { cn } from "@/shared/lib/utils";
 import { SenderAvatar } from "./sender-avatar";
 
 interface InboxThreadListProps {
+  mailboxLabel: string;
   threads: MailThread[];
   activeThreadId?: string;
   onSelectThread?: (threadId: string) => void;
@@ -36,6 +37,7 @@ function formatReceivedDate(isoDate: string): string {
 }
 
 export function InboxThreadList({
+  mailboxLabel,
   threads,
   activeThreadId,
   onSelectThread,
@@ -51,7 +53,9 @@ export function InboxThreadList({
           >
             <FiInbox className="size-5" />
           </span>
-          <p className="text-sm font-medium text-foreground">Inbox is empty</p>
+          <p className="text-sm font-medium text-foreground">
+            {mailboxLabel} is empty
+          </p>
           <p className="mt-2 text-sm text-muted-foreground">
             New conversations will appear here.
           </p>
@@ -63,7 +67,7 @@ export function InboxThreadList({
   return (
     <section className="flex h-full min-h-0 flex-col rounded-xl border border-border/60 bg-card/80 shadow-sm">
       <header className="shrink-0 border-b border-border/60 px-4 py-4">
-        <h1 className="text-sm font-semibold tracking-tight">Inbox</h1>
+        <h1 className="text-sm font-semibold tracking-tight">{mailboxLabel}</h1>
         <p className="mt-1 text-xs text-muted-foreground">
           {threads.length} conversations
         </p>

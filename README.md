@@ -146,7 +146,7 @@ Unauthenticated requests to `/app` redirect to `/login`. Authenticated users on 
 ## Gmail integration
 
 - **Provider:** `features/gmail/services/gmail-service.ts`
-- **Methods:** `listInbox(accessToken)`, `getConversation(accessToken, conversationId)`
+- **Methods:** `listThreads(accessToken, mailboxId)`, `getConversation(accessToken, conversationId)`, `markThreadAsRead(accessToken, threadId)`
 - **Transport:** Gmail REST API via `fetch()` — no Google SDK
 - **Normalization:** Gmail responses are mapped to `MailThread` and `MailConversation` before crossing into `features/mail/`
 - **MIME:** Plain-text preferred; HTML stripped as fallback for message bodies
@@ -157,7 +157,7 @@ The mail UI never imports Gmail response types. The product layer communicates o
 
 - **URL:** `/app?thread=<conversationId>` selects a conversation
 - **Orchestration:** `InboxWorkspace` (server) → `MailAppWorkspace` (client) → `InboxWorkspaceClient`
-- **Data flow:** `getServerSession` → `listInbox` + `getConversation` → normalized domain models → presentation components
+- **Data flow:** `getServerSession` → `listThreads` + `getConversation` → normalized domain models → presentation components
 - **Display:** Sender, recipients, timestamp, subject (once in header), plain-text body (`leading-7`, `max-w-3xl`)
 
 ## Conversation Focus Mode

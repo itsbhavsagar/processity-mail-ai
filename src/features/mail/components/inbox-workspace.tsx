@@ -4,10 +4,11 @@ import { authConfig } from "@/features/auth/server/auth-config";
 import {
   GmailApiError,
   getConversation,
-  listInbox,
+  listThreads,
 } from "@/features/gmail/services/gmail-service";
 import type { MailConversation } from "@/features/mail/types/mail-conversation";
 import type { MailThread } from "@/features/mail/types/mail-thread";
+import { getMailboxById, type MailboxId } from "@/shared/constants";
 import { Card, CardContent } from "@/shared/ui";
 
 import { MailAppWorkspace } from "@/features/mail/components/mail-app-workspace";
@@ -15,6 +16,7 @@ import { ReconnectGoogleButton } from "./reconnect-google-button";
 import { AppHeader } from "@/app/(main)/app/_components/app-header";
 
 interface InboxWorkspaceProps {
+  mailbox: MailboxId;
   conversationId?: string;
 }
 
@@ -55,17 +57,21 @@ function GoogleSessionExpiredState() {
   );
 }
 
-export async function InboxWorkspace({ conversationId }: InboxWorkspaceProps) {
+export async function InboxWorkspace({
+  mailbox,
+  conversationId,
+}: InboxWorkspaceProps) {
   const session = await getServerSession(authConfig);
 
   if (!session?.accessToken || session.error === "RefreshAccessTokenError") {
     return <GoogleSessionExpiredState />;
   }
 
+  const mailboxLabel = getMailboxById(mailbox).label;
   let threads: MailThread[];
 
   try {
-    threads = await listInbox(session.accessToken);
+    threads = await listThreads(session.accessToken, mailbox);
   } catch (error) {
     if (error instanceof GmailApiError && error.status === 401) {
       return <GoogleSessionExpiredState />;
@@ -73,7 +79,7 @@ export async function InboxWorkspace({ conversationId }: InboxWorkspaceProps) {
 
     return (
       <WorkspaceStatusCard
-        title="We couldn't load your inbox"
+        title={`We couldn't load your ${mailboxLabel.toLowerCase()}`}
         description="Something went wrong while talking to Gmail. Refresh the page, or try again in a moment."
       />
     );
@@ -99,8 +105,9 @@ export async function InboxWorkspace({ conversationId }: InboxWorkspaceProps) {
 
   return (
     <MailAppWorkspace
-      key={conversationId ?? "inbox"}
+      key={`${mailbox}-${conversationId ?? "list"}`}
       header={<AppHeader />}
+      mailbox={mailbox}
       threads={threads}
       conversation={conversation}
       conversationError={conversationError}

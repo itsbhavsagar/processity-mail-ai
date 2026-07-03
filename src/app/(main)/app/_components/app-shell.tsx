@@ -1,12 +1,14 @@
 "use client";
 
 import { AppSidebar } from "./app-sidebar";
+import type { MailboxId } from "@/shared/constants";
 import { cn } from "@/shared/lib/utils";
 
 interface AppShellProps {
   workspace: React.ReactNode;
   sidebarActions?: React.ReactNode;
   header?: React.ReactNode;
+  activeMailbox: MailboxId;
   isFocusMode?: boolean;
 }
 
@@ -14,6 +16,7 @@ export function AppShell({
   workspace,
   sidebarActions,
   header,
+  activeMailbox,
   isFocusMode = false,
 }: AppShellProps) {
   return (
@@ -30,7 +33,7 @@ export function AppShell({
       >
         {!isFocusMode ? (
           <div className="hidden min-h-0 md:block">
-            <AppSidebar actions={sidebarActions} />
+            <AppSidebar activeMailbox={activeMailbox} actions={sidebarActions} />
           </div>
         ) : null}
 

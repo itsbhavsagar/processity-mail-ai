@@ -6,6 +6,7 @@ import { FiArrowLeft } from "react-icons/fi";
 
 import type { MailConversation } from "@/features/mail/types/mail-conversation";
 import type { MailThread } from "@/features/mail/types/mail-thread";
+import { getMailboxById, type MailboxId } from "@/shared/constants";
 import { Button } from "@/shared/ui";
 import { cn } from "@/shared/lib/utils";
 
@@ -13,6 +14,7 @@ import { ConversationView } from "./conversation-view";
 import { InboxThreadList } from "./inbox-thread-list";
 
 interface InboxWorkspaceClientProps {
+  mailbox: MailboxId;
   threads: MailThread[];
   conversation: MailConversation | null;
   conversationError: "auth" | "unknown" | false;
@@ -23,7 +25,24 @@ interface InboxWorkspaceClientProps {
   onExitFocusMode: () => void;
 }
 
+function buildMailboxUrl(mailbox: MailboxId, threadId?: string): string {
+  const params = new URLSearchParams();
+
+  if (mailbox !== "inbox") {
+    params.set("mailbox", mailbox);
+  }
+
+  if (threadId) {
+    params.set("thread", threadId);
+  }
+
+  const query = params.toString();
+
+  return query ? `/app?${query}` : "/app";
+}
+
 export function InboxWorkspaceClient({
+  mailbox,
   threads,
   conversation,
   conversationError,
@@ -35,16 +54,17 @@ export function InboxWorkspaceClient({
 }: InboxWorkspaceClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const mailboxLabel = getMailboxById(mailbox).label;
 
   const handleSelectThread = (threadId: string) => {
     startTransition(() => {
-      router.push(`/app?thread=${threadId}`);
+      router.push(buildMailboxUrl(mailbox, threadId));
     });
   };
 
-  const handleBackToInbox = () => {
+  const handleBackToMailbox = () => {
     startTransition(() => {
-      router.push("/app");
+      router.push(buildMailboxUrl(mailbox));
     });
   };
 
@@ -56,7 +76,7 @@ export function InboxWorkspaceClient({
     onExitFocusMode();
 
     if (typeof window !== "undefined" && window.innerWidth < 768) {
-      handleBackToInbox();
+      handleBackToMailbox();
     }
   };
 
@@ -90,6 +110,7 @@ export function InboxWorkspaceClient({
         )}
       >
         <InboxThreadList
+          mailboxLabel={mailboxLabel}
           threads={threads}
           activeThreadId={conversationId}
           onSelectThread={handleSelectThread}
@@ -109,11 +130,11 @@ export function InboxWorkspaceClient({
             variant="ghost"
             size="sm"
             className="w-fit gap-2 md:hidden"
-            onClick={handleBackToInbox}
+            onClick={handleBackToMailbox}
             disabled={isPending}
           >
             <FiArrowLeft className="size-4" aria-hidden />
-            Inbox
+            {mailboxLabel}
           </Button>
         ) : null}
 

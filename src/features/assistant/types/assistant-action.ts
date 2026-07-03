@@ -100,6 +100,10 @@ export const assistantConversationContextSchema = z.object({
   threadId: z.string(),
   subject: z.string(),
   sender: z.string(),
+  to: z.string(),
+  cc: z.string(),
+  sentAt: z.string(),
+  body: z.string(),
 });
 
 const composeDraftContextSchema = z.object({

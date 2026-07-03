@@ -64,6 +64,9 @@ reply:
 - never send via reply_email; user confirms with send_email
 - reply revisions -> reply_email when activeDraft.kind=reply
 
+reading:
+- when currentConversation has a body, answer questions about it directly from its labeled fields (sender, recipients, cc, date, summary, action items, etc.); do not call search_emails or open_email unless the user asks about a different email
+
 threadId sources (copy exactly, never invent):
 - searchResults[].threadId
 - currentConversation.threadId

@@ -28,7 +28,6 @@ Review the changes, then say "Send it" when you're ready—or keep editing.`,
 
   composeCard: {
     draftReady: "Draft ready",
-    draftReadyHint: "Suggested actions",
     preparing: "Preparing draft...",
     preparingRevise: "Updating draft...",
     writing: "Writing draft...",

@@ -926,7 +926,6 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         composeDraft={composeDraft}
         onComposeDraftChange={updateComposeDraft}
         onComposeSend={sendCompose}
-        onRunPrompt={runAssistantPrompt}
         onDevCompose={
           process.env.NODE_ENV === "development" ? handleDevCompose : undefined
         }

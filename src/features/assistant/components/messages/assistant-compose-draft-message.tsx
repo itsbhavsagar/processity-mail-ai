@@ -11,8 +11,6 @@ interface AssistantComposeDraftMessageProps {
   composeDraft: AssistantDraft;
   onComposeDraftChange: (draft: AssistantDraft) => void;
   onComposeSend: () => void;
-  onRunPrompt?: (prompt: string) => void;
-  actionsDisabled?: boolean;
 }
 
 export function AssistantComposeDraftMessageView({
@@ -21,8 +19,6 @@ export function AssistantComposeDraftMessageView({
   composeDraft,
   onComposeDraftChange,
   onComposeSend,
-  onRunPrompt,
-  actionsDisabled = false,
 }: AssistantComposeDraftMessageProps) {
   const displayedDraft = isLive ? composeDraft : message.draft;
   const canSend =
@@ -31,7 +27,6 @@ export function AssistantComposeDraftMessageView({
     canSendDraft(composeDraft);
   const canEdit =
     isLive && (message.status === "draft" || message.status === "failed");
-  const showActions = isLive && message.status === "draft";
 
   return (
     <div className="w-full max-w-full">
@@ -46,7 +41,6 @@ export function AssistantComposeDraftMessageView({
         onRetry={
           message.status === "failed" && isLive ? onComposeSend : undefined
         }
-        onRunPrompt={showActions && !actionsDisabled ? onRunPrompt : undefined}
       />
     </div>
   );

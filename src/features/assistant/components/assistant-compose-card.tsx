@@ -6,7 +6,7 @@ import {
   isComposeTypingStatus,
   type AssistantComposeDraftStatus,
 } from "@/features/assistant/types/assistant-message";
-import { ASSISTANT_COPY, ASSISTANT_DRAFT_ACTIONS } from "@/features/assistant/constants";
+import { ASSISTANT_COPY } from "@/features/assistant/constants";
 import {
   isReplyDraft,
   type AssistantDraft,
@@ -44,7 +44,6 @@ interface AssistantComposeCardProps {
   onDraftChange?: (draft: AssistantDraft) => void;
   onSend?: () => void;
   onRetry?: () => void;
-  onRunPrompt?: (prompt: string) => void;
 }
 
 function ReplyDraftBody({
@@ -99,39 +98,18 @@ function ReplyDraftBody({
 
 function DraftActionBar({
   onSend,
-  onRunPrompt,
   canSend,
 }: {
-  onSend?: () => void;
-  onRunPrompt?: (prompt: string) => void;
+  onSend: () => void;
   canSend: boolean;
 }) {
   return (
     <div className="space-y-2.5">
       <Separator />
-      <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">
-          {ASSISTANT_COPY.composeCard.draftReadyHint}
-        </p>
-        <div className="flex flex-wrap gap-1.5">
-          {onSend ? (
-            <Button type="button" size="sm" onClick={onSend} disabled={!canSend}>
-              {ASSISTANT_COPY.composeCard.sendButton}
-            </Button>
-          ) : null}
-          {ASSISTANT_DRAFT_ACTIONS.map((action) => (
-            <Button
-              key={action.prompt}
-              type="button"
-              size="sm"
-              variant="secondary"
-              onClick={() => onRunPrompt?.(action.prompt)}
-              disabled={!onRunPrompt}
-            >
-              {action.label}
-            </Button>
-          ))}
-        </div>
+      <div className="flex flex-wrap gap-1.5">
+        <Button type="button" size="sm" onClick={onSend} disabled={!canSend}>
+          {ASSISTANT_COPY.composeCard.sendButton}
+        </Button>
       </div>
     </div>
   );
@@ -146,7 +124,6 @@ export function AssistantComposeCard({
   onDraftChange,
   onSend,
   onRetry,
-  onRunPrompt,
 }: AssistantComposeCardProps) {
   const isReply = isReplyDraft(draft);
 
@@ -356,12 +333,8 @@ export function AssistantComposeCard({
             fieldIdPrefix={fieldIdPrefix}
           />
         )}
-        {isEditable && (onSend || onRunPrompt) ? (
-          <DraftActionBar
-            onSend={onSend}
-            onRunPrompt={onRunPrompt}
-            canSend={canSend}
-          />
+        {isEditable && onSend ? (
+          <DraftActionBar onSend={onSend} canSend={canSend} />
         ) : null}
       </CardContent>
     </Card>

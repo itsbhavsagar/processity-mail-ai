@@ -8,6 +8,10 @@ function packFields(fields: string[]): string {
   return fields.map(q).join("|");
 }
 
+function packLabeled(fields: [string, string][]): string {
+  return fields.map(([key, value]) => `${key}=${q(value)}`).join(" ");
+}
+
 export function serializeAssistantContextForPrompt(
   context: AssistantContext,
 ): string {
@@ -16,8 +20,19 @@ export function serializeAssistantContextForPrompt(
   lines.push(`hasActiveDraft=${context.hasActiveDraft ? 1 : 0}`);
 
   if (context.currentConversation) {
-    const { threadId, sender, subject } = context.currentConversation;
-    lines.push(`conversation=${packFields([threadId, sender, subject])}`);
+    const { threadId, sender, subject, to, cc, sentAt, body } =
+      context.currentConversation;
+    lines.push(
+      `conversation=${packLabeled([
+        ["threadId", threadId],
+        ["sender", sender],
+        ["subject", subject],
+        ["to", to],
+        ["cc", cc],
+        ["sentAt", sentAt],
+        ["body", body],
+      ])}`,
+    );
   }
 
   if (context.activeDraft) {

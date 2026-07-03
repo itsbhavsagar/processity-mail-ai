@@ -3,10 +3,11 @@ import { toActiveDraftContext } from "@/features/assistant/lib/assistant-message
 import type { MailConversation } from "@/features/mail/types/mail-conversation";
 import type { MailThread } from "@/features/mail/types/mail-thread";
 import type { AssistantDraft } from "@/features/mail/types/compose-draft";
-import { getMailboxDisplayName } from "@/features/mail/lib/parse-mailbox";
+import { formatMailbox, getMailboxDisplayName } from "@/features/mail/lib/parse-mailbox";
 import type { MailboxId } from "@/shared/constants";
 
 export const MAX_SEARCH_RESULTS = 5;
+export const MAX_CONVERSATION_BODY_LENGTH = 1200;
 
 export type AssistantMailContext = {
   mailbox: MailboxId;
@@ -43,6 +44,13 @@ export function buildAssistantContext(options: {
       sender: latestMessage
         ? getMailboxDisplayName(latestMessage.sender)
         : "Unknown",
+      to: latestMessage ? latestMessage.to.map(formatMailbox).join(", ") : "",
+      cc: latestMessage ? latestMessage.cc.map(formatMailbox).join(", ") : "",
+      sentAt: latestMessage?.sentAt ?? "",
+      body: (latestMessage?.bodyText ?? "").slice(
+        0,
+        MAX_CONVERSATION_BODY_LENGTH,
+      ),
     };
   }
 

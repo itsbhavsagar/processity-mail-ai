@@ -38,7 +38,6 @@ interface AssistantPanelProps {
   composeDraft: AssistantDraft;
   onComposeDraftChange: (draft: AssistantDraft) => void;
   onComposeSend: () => void;
-  onRunPrompt?: (prompt: string) => void;
   onDevCompose?: () => void;
   onDevConfirmSend?: () => void;
 }
@@ -56,7 +55,6 @@ export function AssistantPanel({
   composeDraft,
   onComposeDraftChange,
   onComposeSend,
-  onRunPrompt,
   onDevCompose,
   onDevConfirmSend,
 }: AssistantPanelProps) {
@@ -200,8 +198,6 @@ export function AssistantPanel({
                 composeDraft={composeDraft}
                 onComposeDraftChange={onComposeDraftChange}
                 onComposeSend={onComposeSend}
-                onRunPrompt={onRunPrompt}
-                actionsDisabled={isLoading || isBusy}
               />
             ))}
 

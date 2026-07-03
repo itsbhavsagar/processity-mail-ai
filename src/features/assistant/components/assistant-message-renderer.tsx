@@ -11,8 +11,6 @@ interface AssistantMessageRendererProps {
   composeDraft: AssistantDraft;
   onComposeDraftChange: (draft: AssistantDraft) => void;
   onComposeSend: () => void;
-  onRunPrompt?: (prompt: string) => void;
-  actionsDisabled?: boolean;
 }
 
 export function AssistantMessageRenderer({
@@ -21,8 +19,6 @@ export function AssistantMessageRenderer({
   composeDraft,
   onComposeDraftChange,
   onComposeSend,
-  onRunPrompt,
-  actionsDisabled = false,
 }: AssistantMessageRendererProps) {
   switch (message.kind) {
     case "text":
@@ -42,8 +38,6 @@ export function AssistantMessageRenderer({
           composeDraft={composeDraft}
           onComposeDraftChange={onComposeDraftChange}
           onComposeSend={onComposeSend}
-          onRunPrompt={onRunPrompt}
-          actionsDisabled={actionsDisabled}
         />
       );
     }

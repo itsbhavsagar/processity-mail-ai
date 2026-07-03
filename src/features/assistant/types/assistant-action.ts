@@ -23,9 +23,25 @@ const sendEmailActionSchema = z.object({
   type: z.literal("send_email"),
 });
 
+const searchEmailsActionSchema = z.object({
+  type: z.literal("search_emails"),
+  payload: z.object({
+    query: z.string().min(1),
+  }),
+});
+
+const openEmailActionSchema = z.object({
+  type: z.literal("open_email"),
+  payload: z.object({
+    threadId: z.string().min(1),
+  }),
+});
+
 export const assistantActionSchema = z.discriminatedUnion("type", [
   composeEmailActionSchema,
   sendEmailActionSchema,
+  searchEmailsActionSchema,
+  openEmailActionSchema,
 ]);
 
 export type AssistantAction = z.infer<typeof assistantActionSchema>;
@@ -43,6 +59,25 @@ export type ComposeEmailPayload = Extract<
   { type: "compose_email" }
 >["payload"];
 
+export type SearchEmailsPayload = Extract<
+  AssistantAction,
+  { type: "search_emails" }
+>["payload"];
+
+export type OpenEmailPayload = Extract<
+  AssistantAction,
+  { type: "open_email" }
+>["payload"];
+
+export const assistantSearchResultSchema = z.object({
+  threadId: z.string(),
+  from: z.string(),
+  subject: z.string(),
+  receivedAt: z.string(),
+});
+
+export type AssistantSearchResult = z.infer<typeof assistantSearchResultSchema>;
+
 export const assistantChatMessageSchema = z.object({
   role: z.enum(["user", "assistant"]),
   content: z.string().min(1),
@@ -50,6 +85,7 @@ export const assistantChatMessageSchema = z.object({
 
 export const assistantConversationContextSchema = z
   .object({
+    threadId: z.string(),
     subject: z.string(),
     sender: z.string(),
   })
@@ -65,10 +101,10 @@ const composeDraftContextSchema = z
 
 export const assistantContextSchema = z.object({
   currentMailbox: mailboxTypeSchema.default("inbox"),
-  currentThreadId: z.string().optional(),
   currentConversation: assistantConversationContextSchema,
   hasActiveDraft: z.boolean(),
   activeDraft: composeDraftContextSchema,
+  searchResults: z.array(assistantSearchResultSchema).nullable(),
 });
 
 export type AssistantContext = z.infer<typeof assistantContextSchema>;

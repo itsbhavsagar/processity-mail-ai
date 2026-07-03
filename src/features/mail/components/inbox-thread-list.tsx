@@ -1,9 +1,9 @@
 "use client";
 
-import { FiInbox } from "react-icons/fi";
+import { FiInbox, FiSearch, FiX } from "react-icons/fi";
 
 import type { MailThread } from "@/features/mail/types/mail-thread";
-import { Card, CardContent, ScrollArea } from "@/shared/ui";
+import { Button, Card, CardContent, ScrollArea, Skeleton } from "@/shared/ui";
 import { cn } from "@/shared/lib/utils";
 
 import { SenderAvatar } from "./sender-avatar";
@@ -14,6 +14,9 @@ interface InboxThreadListProps {
   activeThreadId?: string;
   onSelectThread?: (threadId: string) => void;
   isPending?: boolean;
+  searchQuery?: string | null;
+  isSearchLoading?: boolean;
+  onClearSearch?: () => void;
 }
 
 const THREAD_DATE_LOCALE = "en-GB";
@@ -42,7 +45,58 @@ export function InboxThreadList({
   activeThreadId,
   onSelectThread,
   isPending = false,
+  searchQuery = null,
+  isSearchLoading = false,
+  onClearSearch,
 }: InboxThreadListProps) {
+  const isSearchActive = Boolean(searchQuery);
+  const listTitle = isSearchActive ? "Search results" : mailboxLabel;
+
+  if (isSearchLoading) {
+    return (
+      <section className="flex h-full min-h-0 flex-col rounded-xl border border-border/60 bg-card/80 shadow-sm">
+        <header className="shrink-0 space-y-3 border-b border-border/60 px-4 py-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="text-sm font-semibold tracking-tight">
+                {listTitle}
+              </h1>
+              {searchQuery ? (
+                <p className="mt-1 truncate text-xs text-muted-foreground">
+                  {searchQuery}
+                </p>
+              ) : null}
+            </div>
+            {isSearchActive && onClearSearch ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 shrink-0 gap-1.5 px-2 text-xs"
+                onClick={onClearSearch}
+              >
+                <FiX className="size-3.5" aria-hidden />
+                Clear
+              </Button>
+            ) : null}
+          </div>
+        </header>
+        <div className="space-y-3 px-4 py-4">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <div key={index} className="flex gap-3">
+              <Skeleton className="size-8 rounded-full" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-4/5" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
   if (threads.length === 0) {
     return (
       <Card className="flex h-full min-h-0 flex-col items-center justify-center border-border/60 bg-card/80 shadow-sm">
@@ -51,14 +105,33 @@ export function InboxThreadList({
             aria-hidden
             className="mx-auto mb-4 inline-flex size-12 items-center justify-center rounded-full bg-muted/50 text-muted-foreground"
           >
-            <FiInbox className="size-5" />
+            {isSearchActive ? (
+              <FiSearch className="size-5" />
+            ) : (
+              <FiInbox className="size-5" />
+            )}
           </span>
           <p className="text-sm font-medium text-foreground">
-            {mailboxLabel} is empty
+            {isSearchActive
+              ? "No matching conversations"
+              : `${mailboxLabel} is empty`}
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
-            New conversations will appear here.
+            {isSearchActive
+              ? `Nothing matched "${searchQuery}". Try different keywords or operators.`
+              : "New conversations will appear here."}
           </p>
+          {isSearchActive && onClearSearch ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-4"
+              onClick={onClearSearch}
+            >
+              Clear search
+            </Button>
+          ) : null}
         </CardContent>
       </Card>
     );
@@ -67,10 +140,32 @@ export function InboxThreadList({
   return (
     <section className="flex h-full min-h-0 flex-col rounded-xl border border-border/60 bg-card/80 shadow-sm">
       <header className="shrink-0 border-b border-border/60 px-4 py-4">
-        <h1 className="text-sm font-semibold tracking-tight">{mailboxLabel}</h1>
-        <p className="mt-1 text-xs text-muted-foreground">
-          {threads.length} conversations
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-sm font-semibold tracking-tight">{listTitle}</h1>
+            {isSearchActive && searchQuery ? (
+              <p className="mt-1 truncate text-xs text-muted-foreground">
+                {searchQuery}
+              </p>
+            ) : (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {threads.length} conversations
+              </p>
+            )}
+          </div>
+          {isSearchActive && onClearSearch ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 shrink-0 gap-1.5 px-2 text-xs"
+              onClick={onClearSearch}
+            >
+              <FiX className="size-3.5" aria-hidden />
+              Clear
+            </Button>
+          ) : null}
+        </div>
       </header>
 
       <ScrollArea className="min-h-0 flex-1">

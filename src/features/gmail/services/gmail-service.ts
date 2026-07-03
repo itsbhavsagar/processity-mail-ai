@@ -11,7 +11,11 @@ import {
 } from "@/shared/constants";
 
 const GMAIL_API_BASE = "https://gmail.googleapis.com/gmail/v1/users/me";
-const THREAD_LIST_LIMIT = 20;
+const THREAD_LIST_LIMIT = 50;
+
+export type FetchThreadsOptions =
+  | { mailbox: MailboxId }
+  | { query: string };
 
 interface GmailThreadListResponse {
   threads?: Array<{ id: string }>;
@@ -42,40 +46,51 @@ async function gmailFetch<T>(path: string, accessToken: string): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-function buildThreadListPath(mailboxId: MailboxId): string {
-  const mailbox = getMailboxById(mailboxId);
+function buildThreadListPath(options: FetchThreadsOptions): string {
   const params = new URLSearchParams({
     maxResults: String(THREAD_LIST_LIMIT),
   });
 
-  if ("gmailLabel" in mailbox && mailbox.gmailLabel) {
-    params.set("labelIds", mailbox.gmailLabel);
-  }
+  if ("query" in options) {
+    params.set("q", options.query);
+  } else {
+    const mailbox = getMailboxById(options.mailbox);
 
-  if ("gmailQuery" in mailbox && mailbox.gmailQuery) {
-    params.set("q", mailbox.gmailQuery);
+    if ("gmailLabel" in mailbox && mailbox.gmailLabel) {
+      params.set("labelIds", mailbox.gmailLabel);
+    }
+
+    if ("gmailQuery" in mailbox && mailbox.gmailQuery) {
+      params.set("q", mailbox.gmailQuery);
+    }
   }
 
   return `/threads?${params.toString()}`;
 }
 
-async function fetchThreadSummaries(
+const THREAD_METADATA_PATH_SUFFIX =
+  "?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date";
+
+async function fetchThreadIds(
   accessToken: string,
-  mailboxId: MailboxId,
-): Promise<MailThread[]> {
+  options: FetchThreadsOptions,
+): Promise<string[]> {
   const list = await gmailFetch<GmailThreadListResponse>(
-    buildThreadListPath(mailboxId),
+    buildThreadListPath(options),
     accessToken,
   );
 
-  if (!list.threads?.length) {
-    return [];
-  }
+  return list.threads?.map((thread) => thread.id) ?? [];
+}
 
+async function fetchThreadMetadata(
+  accessToken: string,
+  ids: string[],
+): Promise<GmailThreadResponse[]> {
   const threadResponses = await Promise.allSettled(
-    list.threads.map((thread) =>
+    ids.map((id) =>
       gmailFetch<GmailThreadResponse>(
-        `/threads/${thread.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`,
+        `/threads/${id}${THREAD_METADATA_PATH_SUFFIX}`,
         accessToken,
       ),
     ),
@@ -98,14 +113,39 @@ async function fetchThreadSummaries(
     }
   }
 
-  return fulfilledThreads.map(normalizeThread);
+  return fulfilledThreads;
+}
+
+function normalizeThreads(threads: GmailThreadResponse[]): MailThread[] {
+  return threads.map(normalizeThread);
+}
+
+async function fetchThreads(
+  accessToken: string,
+  options: FetchThreadsOptions,
+): Promise<MailThread[]> {
+  const ids = await fetchThreadIds(accessToken, options);
+
+  if (!ids.length) {
+    return [];
+  }
+
+  const metadata = await fetchThreadMetadata(accessToken, ids);
+  return normalizeThreads(metadata);
 }
 
 export async function listThreads(
   accessToken: string,
   mailboxId: MailboxId,
 ): Promise<MailThread[]> {
-  return fetchThreadSummaries(accessToken, mailboxId);
+  return fetchThreads(accessToken, { mailbox: mailboxId });
+}
+
+export async function searchThreads(
+  accessToken: string,
+  query: string,
+): Promise<MailThread[]> {
+  return fetchThreads(accessToken, { query });
 }
 
 export async function getConversation(

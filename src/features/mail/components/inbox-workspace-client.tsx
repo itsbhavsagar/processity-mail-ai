@@ -6,6 +6,7 @@ import { FiArrowLeft } from "react-icons/fi";
 
 import type { MailConversation } from "@/features/mail/types/mail-conversation";
 import type { MailThread } from "@/features/mail/types/mail-thread";
+import { buildMailboxUrl } from "@/features/mail/lib/mailbox-url";
 import { getMailboxById, type MailboxId } from "@/shared/constants";
 import { Button } from "@/shared/ui";
 import { cn } from "@/shared/lib/utils";
@@ -21,24 +22,11 @@ interface InboxWorkspaceClientProps {
   conversationId?: string;
   currentUserEmail?: string;
   isFocusMode: boolean;
+  activeSearchQuery?: string | null;
+  isSearchLoading?: boolean;
+  onClearSearch?: () => void;
   onToggleFocusMode: () => void;
   onExitFocusMode: () => void;
-}
-
-function buildMailboxUrl(mailbox: MailboxId, threadId?: string): string {
-  const params = new URLSearchParams();
-
-  if (mailbox !== "inbox") {
-    params.set("mailbox", mailbox);
-  }
-
-  if (threadId) {
-    params.set("thread", threadId);
-  }
-
-  const query = params.toString();
-
-  return query ? `/app?${query}` : "/app";
 }
 
 export function InboxWorkspaceClient({
@@ -49,6 +37,9 @@ export function InboxWorkspaceClient({
   conversationId,
   currentUserEmail,
   isFocusMode,
+  activeSearchQuery = null,
+  isSearchLoading = false,
+  onClearSearch,
   onToggleFocusMode,
   onExitFocusMode,
 }: InboxWorkspaceClientProps) {
@@ -115,6 +106,9 @@ export function InboxWorkspaceClient({
           activeThreadId={conversationId}
           onSelectThread={handleSelectThread}
           isPending={isPending}
+          searchQuery={activeSearchQuery}
+          isSearchLoading={isSearchLoading}
+          onClearSearch={onClearSearch}
         />
       </div>
 

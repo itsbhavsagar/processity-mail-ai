@@ -105,7 +105,7 @@ export async function InboxWorkspace({
 
   return (
     <MailAppWorkspace
-      key={`${mailbox}-${conversationId ?? "list"}`}
+      key={mailbox}
       header={<AppHeader />}
       mailbox={mailbox}
       threads={threads}

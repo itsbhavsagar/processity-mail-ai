@@ -2,7 +2,9 @@ import type { ComposeDraft } from "@/features/mail/types/compose-draft";
 
 export type AssistantComposeDraftStatus =
   | "preparing"
-  | "filling"
+  | "typing_to"
+  | "typing_subject"
+  | "typing_body"
   | "draft"
   | "sending"
   | "sent"
@@ -14,8 +16,8 @@ export type AssistantComposeDraftMessage = {
   kind: "compose_draft";
   content: string;
   draft: ComposeDraft;
-  targetDraft?: ComposeDraft;
   status: AssistantComposeDraftStatus;
+  variant?: "create" | "revise";
   sentAt?: string;
 };
 
@@ -30,7 +32,43 @@ export type AssistantChatMessage =
   | AssistantTextMessage
   | AssistantComposeDraftMessage;
 
-export type AssistantMessageKind = AssistantChatMessage["kind"];
+export const COMPOSE_TYPING_STATUSES: AssistantComposeDraftStatus[] = [
+  "typing_to",
+  "typing_subject",
+  "typing_body",
+];
 
-export const COMPOSE_FILL_PREPARE_MS = 400;
-export const COMPOSE_FILL_STAGGER_MS = 150;
+export function isComposeTypingStatus(
+  status: AssistantComposeDraftStatus,
+): boolean {
+  return COMPOSE_TYPING_STATUSES.includes(status);
+}
+
+export function isSupersedableDraftStatus(
+  status: AssistantComposeDraftStatus,
+): boolean {
+  return (
+    status === "preparing" ||
+    isComposeTypingStatus(status) ||
+    status === "draft" ||
+    status === "sending"
+  );
+}
+
+export function activeFieldForComposeStatus(
+  status: AssistantComposeDraftStatus,
+): keyof ComposeDraft | null {
+  if (status === "typing_to") {
+    return "to";
+  }
+
+  if (status === "typing_subject") {
+    return "subject";
+  }
+
+  if (status === "typing_body") {
+    return "body";
+  }
+
+  return null;
+}

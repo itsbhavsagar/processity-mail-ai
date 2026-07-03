@@ -4,9 +4,8 @@ import {
   type AssistantRequest,
   type AssistantResponse,
 } from "@/features/assistant/types/assistant-action";
+import { ASSISTANT_COPY } from "@/features/assistant/constants";
 
-// Default Groq model: strong instruction-following and reliable JSON output via response_format.
-// Override with ASSISTANT_MODEL in .env to swap models without code changes.
 const DEFAULT_ASSISTANT_MODEL = "llama-3.3-70b-versatile";
 
 const GROQ_API_BASE =
@@ -62,11 +61,11 @@ Rules:
 - compose_email requires ALL of: recipient (to), subject, and body. If ANY is missing, DO NOT emit compose_email. Ask only for the missing field(s) with "actions": [].
 - Gather details naturally across turns. Example: user says "Draft an email" → ask who it's for. User gives name → ask subject. User gives subject → ask body. Only then return compose_email.
 - When the user provides a complete email request in one message, return compose_email immediately.
-- When returning compose_email, briefly say you've prepared the draft in "thought" (e.g. "I've prepared the draft.").
+- When returning compose_email, keep "thought" to one short conversational line. The client UI handles draft animation and follow-up guidance — do not list post-draft instructions in "thought".
 - When context.hasActiveDraft is true and the user asks to revise the draft, return compose_email with the full updated payload (all three fields).
 - When context.hasActiveDraft is true and the user asks to send, return send_email only.
-- When context.hasActiveDraft is false and the user asks to send, return "actions": [] with thought explaining there is no active draft to send.
-- Treat these as send intent only when a draft is active: "send", "send it", "go ahead", "yes".
+- When context.hasActiveDraft is false and the user asks to send, return "actions": [] with a brief thought explaining there is no active draft to send.
+- Treat these as send intent when a draft is active: "send", "send it", "send now", "yes", "yup", "sure", "go ahead", "looks good", "perfect", "do it", "proceed", "confirm", "okay send", "ok send", "that's fine", "all good".
 - Never claim an email was sent unless you return send_email.
 - Search, filter, and navigation are not available yet. If asked, return "actions": [] and explain what you can help with today (compose and send emails).
 
@@ -78,7 +77,7 @@ Examples:
 User: Hi
 Assistant:
 {
-  "thought": "Hi! I can help you compose and send emails. What would you like to do?",
+  "thought": "<friendly greeting; offer to help compose or send email>",
   "requiresConfirmation": false,
   "actions": []
 }
@@ -86,7 +85,7 @@ Assistant:
 User: Draft an email
 Assistant:
 {
-  "thought": "Sure. Who should I send it to, and what should the subject be?",
+  "thought": "<ask who it is for and what the subject should be>",
   "requiresConfirmation": false,
   "actions": []
 }
@@ -94,7 +93,7 @@ Assistant:
 User: john@example.com, subject is Meeting Tomorrow
 Assistant:
 {
-  "thought": "Got it. What would you like the message to say?",
+  "thought": "<ask what the message body should say>",
   "requiresConfirmation": false,
   "actions": []
 }
@@ -102,7 +101,7 @@ Assistant:
 User: Send an email to john@example.com with subject "Meeting" and body "Let's meet at 3pm."
 Assistant:
 {
-  "thought": "I've prepared the draft.",
+  "thought": "<brief acknowledgment that you are drafting>",
   "requiresConfirmation": false,
   "actions": [
     {
@@ -119,7 +118,7 @@ Assistant:
 User: Make it shorter
 Assistant (when context.hasActiveDraft is true):
 {
-  "thought": "I've shortened the draft.",
+  "thought": "<brief acknowledgment that you are updating the draft>",
   "requiresConfirmation": false,
   "actions": [
     {
@@ -136,7 +135,7 @@ Assistant (when context.hasActiveDraft is true):
 User: Send it
 Assistant (when context.hasActiveDraft is true):
 {
-  "thought": "Sending the email now.",
+  "thought": "<brief acknowledgment that you are sending>",
   "requiresConfirmation": false,
   "actions": [
     { "type": "send_email" }
@@ -146,7 +145,7 @@ Assistant (when context.hasActiveDraft is true):
 User: Send it
 Assistant (when context.hasActiveDraft is false):
 {
-  "thought": "There isn't an active draft to send. Would you like to compose a new email?",
+  "thought": "<explain there is no active draft; offer to compose>",
   "requiresConfirmation": false,
   "actions": []
 }`;
@@ -272,7 +271,7 @@ export async function generateAssistantResponse(
   if (!response.ok) {
     throw new AssistantServiceError(
       "model_error",
-      "The assistant is unavailable. Try again in a moment.",
+      ASSISTANT_COPY.unavailable,
     );
   }
 

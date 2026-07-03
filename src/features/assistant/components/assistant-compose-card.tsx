@@ -1,12 +1,16 @@
 "use client";
 
-import { FiCheckCircle, FiLoader } from "react-icons/fi";
-
 import { ComposeDraftForm } from "@/features/mail/components/compose-draft-form";
-import type { AssistantComposeDraftStatus } from "@/features/assistant/types/assistant-message";
+import {
+  activeFieldForComposeStatus,
+  isComposeTypingStatus,
+  type AssistantComposeDraftStatus,
+} from "@/features/assistant/types/assistant-message";
+import { ASSISTANT_COPY } from "@/features/assistant/constants";
 import type { ComposeDraft } from "@/features/mail/types/compose-draft";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui";
 import { cn } from "@/shared/lib/utils";
+import { FiCheckCircle, FiLoader } from "react-icons/fi";
 
 const SENT_TIME_LOCALE = "en-GB";
 
@@ -21,20 +25,20 @@ interface AssistantComposeCardProps {
   draft: ComposeDraft;
   fieldIdPrefix: string;
   status: AssistantComposeDraftStatus;
+  variant?: "create" | "revise";
   sentAt?: string;
   onDraftChange?: (draft: ComposeDraft) => void;
   onSend?: () => void;
-  canSend?: boolean;
 }
 
 export function AssistantComposeCard({
   draft,
   fieldIdPrefix,
   status,
+  variant = "create",
   sentAt,
   onDraftChange,
   onSend,
-  canSend = false,
 }: AssistantComposeCardProps) {
   if (status === "sent") {
     return (
@@ -42,7 +46,7 @@ export function AssistantComposeCard({
         <CardHeader className="border-b border-border/60 px-3 py-2.5">
           <CardTitle className="flex items-center gap-2 text-sm font-medium text-emerald-700 dark:text-emerald-400">
             <FiCheckCircle className="size-4 shrink-0" aria-hidden />
-            Email sent
+            {ASSISTANT_COPY.composeCard.sentTitle}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 px-3 py-3 text-sm">
@@ -69,7 +73,9 @@ export function AssistantComposeCard({
       <Card className="mt-2 gap-0 py-0 shadow-none">
         <CardContent className="flex items-center gap-2 px-3 py-4 text-sm text-muted-foreground">
           <FiLoader className="size-4 shrink-0 animate-spin" aria-hidden />
-          Preparing draft...
+          {variant === "revise"
+            ? ASSISTANT_COPY.composeCard.preparingRevise
+            : ASSISTANT_COPY.composeCard.preparing}
         </CardContent>
       </Card>
     );
@@ -77,12 +83,13 @@ export function AssistantComposeCard({
 
   const isEditable = status === "draft";
   const isSending = status === "sending";
+  const isTyping = isComposeTypingStatus(status);
 
   return (
     <Card
       className={cn(
         "mt-2 gap-0 py-0 shadow-none transition-opacity duration-300",
-        status === "filling" && "opacity-95",
+        isTyping && "opacity-95",
       )}
     >
       <CardHeader className="border-b border-border/60 px-3 py-2.5">
@@ -90,12 +97,19 @@ export function AssistantComposeCard({
           {isSending ? (
             <>
               <FiLoader className="size-4 shrink-0 animate-spin" aria-hidden />
-              Sending...
+              {ASSISTANT_COPY.composeCard.sending}
+            </>
+          ) : isTyping ? (
+            <>
+              <FiLoader className="size-4 shrink-0 animate-spin" aria-hidden />
+              {variant === "revise"
+                ? ASSISTANT_COPY.composeCard.writingRevise
+                : ASSISTANT_COPY.composeCard.writing}
             </>
           ) : status === "superseded" ? (
-            "Draft email (superseded)"
+            ASSISTANT_COPY.composeCard.supersededTitle
           ) : (
-            "Draft email"
+            ASSISTANT_COPY.composeCard.draftTitle
           )}
         </CardTitle>
       </CardHeader>
@@ -105,9 +119,10 @@ export function AssistantComposeCard({
           onDraftChange={isEditable ? onDraftChange : undefined}
           disabled={!isEditable || isSending}
           readOnly={!isEditable}
+          activeField={activeFieldForComposeStatus(status)}
           fieldIdPrefix={fieldIdPrefix}
         />
-        {canSend && isEditable ? (
+        {onSend && isEditable ? (
           <div className="flex justify-end">
             <button
               type="button"
@@ -115,7 +130,7 @@ export function AssistantComposeCard({
               onClick={onSend}
               disabled={!draft.to.trim()}
             >
-              Send
+              {ASSISTANT_COPY.composeCard.sendButton}
             </button>
           </div>
         ) : null}

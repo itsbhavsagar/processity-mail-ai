@@ -1,3 +1,4 @@
+import { ASSISTANT_COPY } from "@/features/assistant/constants";
 import type {
   AssistantApiErrorBody,
   AssistantRequest,
@@ -31,7 +32,7 @@ export async function requestAssistantResponse(
     const errorBody = body as AssistantApiErrorBody;
     throw new AssistantClientError(
       errorBody.error ?? "model_error",
-      errorBody.message ?? "The assistant is unavailable. Try again in a moment.",
+      errorBody.message ?? ASSISTANT_COPY.unavailable,
     );
   }
 

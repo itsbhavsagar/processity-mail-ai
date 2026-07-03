@@ -2,12 +2,14 @@
 
 import type { ComposeDraft } from "@/features/mail/types/compose-draft";
 import { Input, Label, Textarea } from "@/shared/ui";
+import { cn } from "@/shared/lib/utils";
 
 interface ComposeDraftFormProps {
   draft: ComposeDraft;
   onDraftChange?: (draft: ComposeDraft) => void;
   disabled?: boolean;
   readOnly?: boolean;
+  activeField?: "to" | "subject" | "body" | null;
   fieldIdPrefix: string;
 }
 
@@ -16,28 +18,19 @@ export function ComposeDraftForm({
   onDraftChange,
   disabled = false,
   readOnly = false,
+  activeField = null,
   fieldIdPrefix,
 }: ComposeDraftFormProps) {
-  if (readOnly) {
-    return (
-      <div className="space-y-3 text-sm">
-        <div>
-          <p className="text-xs font-medium text-muted-foreground">To</p>
-          <p className="mt-0.5 wrap-break-word">{draft.to || "—"}</p>
-        </div>
-        <div>
-          <p className="text-xs font-medium text-muted-foreground">Subject</p>
-          <p className="mt-0.5 wrap-break-word">{draft.subject || "—"}</p>
-        </div>
-        <div>
-          <p className="text-xs font-medium text-muted-foreground">Message</p>
-          <p className="mt-0.5 whitespace-pre-wrap wrap-break-word">
-            {draft.body || "—"}
-          </p>
-        </div>
-      </div>
+  const fieldInputClassName = (field: "to" | "subject" | "body") =>
+    cn(
+      "h-8 text-sm",
+      readOnly && activeField === field && "ring-1 ring-primary/25",
     );
-  }
+
+  const bodyClassName = cn(
+    "min-h-24 resize-none text-sm",
+    readOnly && activeField === "body" && "ring-1 ring-primary/25",
+  );
 
   return (
     <div className="space-y-3">
@@ -55,7 +48,8 @@ export function ComposeDraftForm({
             onDraftChange?.({ ...draft, to: event.target.value })
           }
           disabled={disabled}
-          className="h-8 text-sm"
+          readOnly={readOnly}
+          className={fieldInputClassName("to")}
         />
       </div>
 
@@ -72,7 +66,8 @@ export function ComposeDraftForm({
             onDraftChange?.({ ...draft, subject: event.target.value })
           }
           disabled={disabled}
-          className="h-8 text-sm"
+          readOnly={readOnly}
+          className={fieldInputClassName("subject")}
         />
       </div>
 
@@ -88,7 +83,8 @@ export function ComposeDraftForm({
             onDraftChange?.({ ...draft, body: event.target.value })
           }
           disabled={disabled}
-          className="min-h-24 resize-none text-sm"
+          readOnly={readOnly}
+          className={bodyClassName}
         />
       </div>
     </div>

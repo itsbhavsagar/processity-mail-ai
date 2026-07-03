@@ -6,6 +6,10 @@ import { toast } from "sonner";
 
 import { ComposeDraftForm } from "@/features/mail/components/compose-draft-form";
 import { sendEmail } from "@/features/mail/actions/send-email";
+import {
+  draftToFormData,
+  getPrimaryRecipientEmail,
+} from "@/features/mail/lib/compose-send";
 import type { ComposeDraft } from "@/features/mail/types/compose-draft";
 import {
   Button,
@@ -16,9 +20,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui";
-
-export type { ComposeDraft } from "@/features/mail/types/compose-draft";
-export { emptyComposeDraft } from "@/features/mail/types/compose-draft";
 
 interface ComposeEmailDialogProps {
   open: boolean;
@@ -55,15 +56,8 @@ export function ComposeEmailDialog({
     event.preventDefault();
     setErrorMessage(null);
 
-    const formData = new FormData();
-    formData.set("to", draft.to);
-    formData.set("subject", draft.subject);
-    formData.set("body", draft.body);
-
-    const recipientEmail = draft.to
-      .split(",")
-      .map((part) => part.trim())
-      .find(Boolean);
+    const formData = draftToFormData(draft);
+    const recipientEmail = getPrimaryRecipientEmail(draft.to);
 
     startTransition(async () => {
       const result = await sendEmail(formData);

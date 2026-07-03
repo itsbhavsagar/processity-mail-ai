@@ -4,17 +4,22 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import {
-  AssistantPanel,
-  type AssistantChatMessage,
-  type AssistantComposeDraftMessage,
-} from "@/features/assistant/components/assistant-panel";
-import {
-  COMPOSE_FILL_PREPARE_MS,
-  COMPOSE_FILL_STAGGER_MS,
-  type AssistantComposeDraftStatus,
-} from "@/features/assistant/types/assistant-message";
+import { AssistantPanel } from "@/features/assistant/components/assistant-panel";
+import { ASSISTANT_COPY } from "@/features/assistant/constants";
 import { executeAssistantActions } from "@/features/assistant/executor/execute-assistant-action";
+import {
+  createTextMessage,
+  findActiveDraftMessage,
+  resolveActiveDraft,
+  supersedeDraftMessages,
+  toApiMessageContent,
+} from "@/features/assistant/lib/assistant-message-utils";
+import { runComposeTypingAnimation, typeAssistantMessage } from "@/features/assistant/lib/compose-typing-animation";
+import type {
+  AssistantChatMessage,
+  AssistantComposeDraftMessage,
+  AssistantComposeDraftStatus,
+} from "@/features/assistant/types/assistant-message";
 import {
   AssistantClientError,
   requestAssistantResponse,
@@ -26,6 +31,10 @@ import type {
   MailboxType,
 } from "@/features/assistant/types/assistant-action";
 import { getMailboxDisplayName } from "@/features/mail/lib/parse-mailbox";
+import {
+  draftToFormData,
+  getPrimaryRecipientEmail,
+} from "@/features/mail/lib/compose-send";
 import { markThreadRead } from "@/features/mail/actions/mark-thread-read";
 import { sendEmail } from "@/features/mail/actions/send-email";
 import type { MailConversation } from "@/features/mail/types/mail-conversation";
@@ -53,7 +62,7 @@ interface MailAppWorkspaceProps {
 }
 
 const DEV_COMPOSE_RESPONSE: AssistantResponse = {
-  thought: "I've prepared the draft.",
+  thought: "Drafting a sample email.",
   requiresConfirmation: false,
   actions: [
     {
@@ -68,7 +77,7 @@ const DEV_COMPOSE_RESPONSE: AssistantResponse = {
 };
 
 const DEV_CONFIRM_SEND_RESPONSE: AssistantResponse = {
-  thought: "Sending the email now.",
+  thought: "Sending now.",
   requiresConfirmation: false,
   actions: [{ type: "send_email" }],
 };
@@ -78,62 +87,6 @@ function isTypingTarget(target: EventTarget | null): boolean {
     target instanceof HTMLInputElement ||
     target instanceof HTMLTextAreaElement ||
     (target instanceof HTMLElement && target.isContentEditable)
-  );
-}
-
-function createTextMessage(
-  role: "user" | "assistant",
-  content: string,
-): AssistantChatMessage {
-  return {
-    id: crypto.randomUUID(),
-    role,
-    kind: "text",
-    content,
-  };
-}
-
-function toApiMessageContent(message: AssistantChatMessage): string {
-  if (message.kind === "text") {
-    return message.content;
-  }
-
-  if (message.status === "sent") {
-    return `${message.content}\n\n[Email already sent to ${message.draft.to}. Subject: ${message.draft.subject}. There is no active draft.]`;
-  }
-
-  if (message.status === "superseded") {
-    return `${message.content}\n\n[Superseded draft — not active.]`;
-  }
-
-  if (message.status === "preparing" || message.status === "filling") {
-    return `${message.content}\n\n[Draft is being prepared.]`;
-  }
-
-  if (message.status === "sending") {
-    return `${message.content}\n\n[Email is currently being sent.]`;
-  }
-
-  const draftSummary = [
-    "Active draft email:",
-    `To: ${message.draft.to}`,
-    `Subject: ${message.draft.subject}`,
-    `Body: ${message.draft.body}`,
-  ].join("\n");
-
-  const summary = message.content
-    ? `${message.content}\n\n${draftSummary}`
-    : draftSummary;
-
-  return summary.trim() || "Draft email prepared.";
-}
-
-function isActiveDraftMessage(
-  message: AssistantChatMessage | undefined,
-): message is AssistantComposeDraftMessage {
-  return (
-    message?.kind === "compose_draft" &&
-    message.status === "draft"
   );
 }
 
@@ -160,24 +113,6 @@ function buildAssistantContext(options: {
     hasActiveDraft: options.hasActiveDraft,
     activeDraft: options.activeDraft,
   };
-}
-
-function supersedeDraftMessages(
-  messages: AssistantChatMessage[],
-): AssistantChatMessage[] {
-  return messages.map((message) => {
-    if (
-      message.kind === "compose_draft" &&
-      (message.status === "preparing" ||
-        message.status === "filling" ||
-        message.status === "draft" ||
-        message.status === "sending")
-    ) {
-      return { ...message, status: "superseded" as const };
-    }
-
-    return message;
-  });
 }
 
 export function MailAppWorkspace({
@@ -212,6 +147,10 @@ export function MailAppWorkspace({
   >([]);
   const [assistantInput, setAssistantInput] = useState("");
   const [assistantLoading, setAssistantLoading] = useState(false);
+  const [assistantBusy, setAssistantBusy] = useState(false);
+  const [typingAssistantText, setTypingAssistantText] = useState<string | null>(
+    null,
+  );
 
   const canUseFocusMode = Boolean(
     conversationId && conversation && !conversationError,
@@ -275,6 +214,37 @@ export function MailAppWorkspace({
     fillAnimationTimersRef.current = [];
   }, []);
 
+  const createAnimationSchedule = useCallback(() => {
+    clearFillAnimation();
+
+    return (callback: () => void, delay: number) => {
+      const timerId = window.setTimeout(callback, delay);
+      fillAnimationTimersRef.current.push(timerId);
+    };
+  }, [clearFillAnimation]);
+
+  const typeAssistantText = useCallback(
+    (text: string, onComplete: () => void) => {
+      const schedule = createAnimationSchedule();
+      setTypingAssistantText("");
+
+      typeAssistantMessage(
+        text,
+        schedule,
+        (partial) => setTypingAssistantText(partial),
+        () => {
+          setAssistantMessages((current) => [
+            ...current,
+            createTextMessage("assistant", text),
+          ]);
+          setTypingAssistantText(null);
+          onComplete();
+        },
+      );
+    },
+    [createAnimationSchedule],
+  );
+
   const updateComposeMessage = useCallback(
     (
       messageId: string,
@@ -305,81 +275,59 @@ export function MailAppWorkspace({
   );
 
   const canSendActiveDraft = useCallback(() => {
-    const messageId = activeComposeMessageIdRef.current;
-
-    if (!messageId) {
-      return false;
-    }
-
-    const message = assistantMessagesRef.current.find(
-      (entry) => entry.id === messageId,
-    );
-
-    if (!isActiveDraftMessage(message)) {
-      return false;
-    }
-
-    return composeDraftRef.current.to.trim().length > 0;
+    return resolveActiveDraft(
+      activeComposeMessageIdRef.current,
+      assistantMessagesRef.current,
+      composeDraftRef.current,
+    ).canSend;
   }, []);
 
   const getActiveDraftContext = useCallback(() => {
-    const messageId = activeComposeMessageIdRef.current;
-
-    if (!messageId) {
-      return { hasActiveDraft: false, activeDraft: null };
-    }
-
-    const message = assistantMessagesRef.current.find(
-      (entry) => entry.id === messageId,
+    const { hasActiveDraft, activeDraft } = resolveActiveDraft(
+      activeComposeMessageIdRef.current,
+      assistantMessagesRef.current,
+      composeDraftRef.current,
     );
 
-    if (!isActiveDraftMessage(message)) {
-      return { hasActiveDraft: false, activeDraft: null };
-    }
+    return { hasActiveDraft, activeDraft };
+  }, []);
 
-    return {
-      hasActiveDraft: true,
-      activeDraft: composeDraftRef.current,
-    };
+  const clearActiveComposeMessage = useCallback(() => {
+    activeComposeMessageIdRef.current = null;
+    setActiveComposeMessageId(null);
   }, []);
   const startFillAnimation = useCallback(
-    (target: ComposeDraft) => {
-      clearFillAnimation();
+    (
+      messageId: string,
+      target: ComposeDraft,
+      variant: "create" | "revise" = "create",
+    ) => {
+      const schedule = createAnimationSchedule();
 
-      const schedule = (callback: () => void, delay: number) => {
-        const timerId = window.setTimeout(callback, delay);
-        fillAnimationTimersRef.current.push(timerId);
-      };
-
-      schedule(() => {
-        applyLiveDraft(
-          { ...emptyComposeDraft, to: target.to },
-          "filling",
-        );
-      }, COMPOSE_FILL_PREPARE_MS);
-
-      schedule(() => {
-        applyLiveDraft(
-          { to: target.to, subject: target.subject, body: "" },
-          "filling",
-        );
-      }, COMPOSE_FILL_PREPARE_MS + COMPOSE_FILL_STAGGER_MS);
-
-      schedule(() => {
-        applyLiveDraft(target, "filling");
-      }, COMPOSE_FILL_PREPARE_MS + COMPOSE_FILL_STAGGER_MS * 2);
-
-      schedule(() => {
-        applyLiveDraft(target, "draft");
-      }, COMPOSE_FILL_PREPARE_MS + COMPOSE_FILL_STAGGER_MS * 2 + 80);
+      runComposeTypingAnimation(
+        target,
+        schedule,
+        (draft, status) => {
+          applyLiveDraft(draft, status);
+        },
+        () => {
+          applyLiveDraft(target, "draft");
+          updateComposeMessage(messageId, {
+            draft: target,
+            status: "draft",
+            variant,
+          });
+          typeAssistantText(
+            variant === "revise"
+              ? ASSISTANT_COPY.draftUpdated
+              : ASSISTANT_COPY.draftReady,
+            () => setAssistantBusy(false),
+          );
+        },
+      );
     },
-    [applyLiveDraft, clearFillAnimation],
+    [applyLiveDraft, createAnimationSchedule, typeAssistantText, updateComposeMessage],
   );
-
-  const resetComposeDraft = useCallback(() => {
-    composeDraftRef.current = emptyComposeDraft;
-    setComposeDraft(emptyComposeDraft);
-  }, []);
 
   const updateComposeDraft = useCallback((draft: ComposeDraft) => {
     composeDraftRef.current = draft;
@@ -388,17 +336,17 @@ export function MailAppWorkspace({
 
   const openManualCompose = useCallback(() => {
     clearFillAnimation();
+    setTypingAssistantText(null);
+    setAssistantBusy(false);
     setAssistantMessages((current) => supersedeDraftMessages(current));
-    activeComposeMessageIdRef.current = null;
-    setActiveComposeMessageId(null);
-    resetComposeDraft();
+    clearActiveComposeMessage();
+    updateComposeDraft(emptyComposeDraft);
     setIsComposeOpen(true);
-  }, [clearFillAnimation, resetComposeDraft]);
+  }, [clearActiveComposeMessage, clearFillAnimation, updateComposeDraft]);
 
   const showAssistantComposeDraft = useCallback(
     (
       payload: ComposeEmailPayload,
-      thought: string,
       updateExisting = false,
     ) => {
       const targetDraft: ComposeDraft = {
@@ -410,11 +358,14 @@ export function MailAppWorkspace({
       if (updateExisting && activeComposeMessageIdRef.current) {
         const messageId = activeComposeMessageIdRef.current;
         clearFillAnimation();
-        applyLiveDraft(targetDraft, "draft");
+        updateComposeDraft(emptyComposeDraft);
         updateComposeMessage(messageId, {
-          content: thought,
-          targetDraft,
+          content: "",
+          draft: emptyComposeDraft,
+          status: "preparing",
+          variant: "revise",
         });
+        startFillAnimation(messageId, targetDraft, "revise");
         return;
       }
 
@@ -422,17 +373,16 @@ export function MailAppWorkspace({
 
       activeComposeMessageIdRef.current = messageId;
       setActiveComposeMessageId(messageId);
-      composeDraftRef.current = emptyComposeDraft;
-      setComposeDraft(emptyComposeDraft);
+      updateComposeDraft(emptyComposeDraft);
 
       const composeMessage: AssistantComposeDraftMessage = {
         id: messageId,
         role: "assistant",
         kind: "compose_draft",
-        content: thought,
+        content: "",
         draft: emptyComposeDraft,
-        targetDraft,
         status: "preparing",
+        variant: "create",
       };
 
       setAssistantMessages((current) => [
@@ -440,12 +390,12 @@ export function MailAppWorkspace({
         composeMessage,
       ]);
 
-      startFillAnimation(targetDraft);
+      startFillAnimation(messageId, targetDraft, "create");
     },
     [
-      applyLiveDraft,
       clearFillAnimation,
       startFillAnimation,
+      updateComposeDraft,
       updateComposeMessage,
     ],
   );
@@ -486,23 +436,15 @@ export function MailAppWorkspace({
       );
     }
 
-    activeComposeMessageIdRef.current = null;
-    setActiveComposeMessageId(null);
+    clearActiveComposeMessage();
     clearFillAnimation();
-    resetComposeDraft();
-  }, [clearFillAnimation, resetComposeDraft]);
+    updateComposeDraft(emptyComposeDraft);
+  }, [clearActiveComposeMessage, clearFillAnimation, updateComposeDraft]);
 
   const sendCompose = useCallback(() => {
     const draft = composeDraftRef.current;
-    const formData = new FormData();
-    formData.set("to", draft.to);
-    formData.set("subject", draft.subject);
-    formData.set("body", draft.body);
-
-    const recipientEmail = draft.to
-      .split(",")
-      .map((part) => part.trim())
-      .find(Boolean);
+    const formData = draftToFormData(draft);
+    const recipientEmail = getPrimaryRecipientEmail(draft.to);
 
     markActiveDraftSending();
 
@@ -550,41 +492,41 @@ export function MailAppWorkspace({
       const wantsSend = response.actions.some(
         (action) => action.type === "send_email",
       );
-      const activeMessage = assistantMessagesRef.current.find(
-        (entry) => entry.id === activeComposeMessageIdRef.current,
+      const activeMessage = findActiveDraftMessage(
+        activeComposeMessageIdRef.current,
+        assistantMessagesRef.current,
       );
-      const isDraftRevision = hasCompose && isActiveDraftMessage(activeMessage);
+      const isDraftRevision = hasCompose && Boolean(activeMessage);
 
-      executeAssistantActions(response.actions, {
-        showAssistantComposeDraft: (payload) => {
-          showAssistantComposeDraft(payload, response.thought, isDraftRevision);
-        },
-      });
+      let thought = response.thought;
 
-      if (!hasCompose) {
-        let thought = response.thought;
+      if (wantsSend && !canSendActiveDraft()) {
+        thought = ASSISTANT_COPY.noActiveDraft;
+      }
 
-        if (wantsSend && !canSendActiveDraft()) {
-          thought =
-            "There isn't an active draft to send. Would you like to compose a new email?";
+      typeAssistantText(thought, () => {
+        if (hasCompose) {
+          executeAssistantActions(response.actions, {
+            showAssistantComposeDraft: (payload) => {
+              showAssistantComposeDraft(payload, isDraftRevision);
+            },
+          });
+          return;
         }
 
-        setAssistantMessages((current) => [
-          ...current,
-          createTextMessage("assistant", thought),
-        ]);
-      }
+        if (wantsSend && canSendActiveDraft()) {
+          sendCompose();
+        }
 
-      if (wantsSend && canSendActiveDraft()) {
-        sendCompose();
-      }
+        setAssistantBusy(false);
+      });
     },
-    [canSendActiveDraft, sendCompose, showAssistantComposeDraft],
+    [canSendActiveDraft, sendCompose, showAssistantComposeDraft, typeAssistantText],
   );
 
   const submitAssistantPrompt = useCallback(async () => {
     const trimmed = assistantInput.trim();
-    if (!trimmed || assistantLoading) {
+    if (!trimmed || assistantLoading || assistantBusy) {
       return;
     }
 
@@ -593,6 +535,9 @@ export function MailAppWorkspace({
       createTextMessage("user", trimmed),
     ]);
     setAssistantInput("");
+    clearFillAnimation();
+    setTypingAssistantText(null);
+    setAssistantBusy(true);
     setAssistantLoading(true);
 
     const { hasActiveDraft, activeDraft } = getActiveDraftContext();
@@ -615,32 +560,33 @@ export function MailAppWorkspace({
         }),
       });
 
+      setAssistantLoading(false);
       processAssistantResponse(response);
     } catch (error) {
       const message =
         error instanceof AssistantClientError
           ? error.message
-          : "The assistant is unavailable. Try again in a moment.";
+          : ASSISTANT_COPY.unavailable;
 
-      setAssistantMessages((current) => [
-        ...current,
-        createTextMessage("assistant", message),
-      ]);
-    } finally {
       setAssistantLoading(false);
+      typeAssistantText(message, () => setAssistantBusy(false));
     }
   }, [
     assistantInput,
+    assistantBusy,
     assistantLoading,
     assistantMessages,
+    clearFillAnimation,
     conversation,
     conversationId,
     mailbox,
     processAssistantResponse,
     getActiveDraftContext,
+    typeAssistantText,
   ]);
 
   const handleDevCompose = useCallback(() => {
+    setAssistantBusy(true);
     setAssistantMessages((current) => [
       ...current,
       createTextMessage(
@@ -652,6 +598,7 @@ export function MailAppWorkspace({
   }, [processAssistantResponse]);
 
   const handleDevConfirmSend = useCallback(() => {
+    setAssistantBusy(true);
     setAssistantMessages((current) => [
       ...current,
       createTextMessage("user", "Send it"),
@@ -663,13 +610,9 @@ export function MailAppWorkspace({
     setIsComposeOpen(open);
 
     if (!open) {
-      resetComposeDraft();
+      updateComposeDraft(emptyComposeDraft);
     }
-  }, [resetComposeDraft]);
-
-  const handleManualComposeSent = useCallback(() => {
-    resetComposeDraft();
-  }, [resetComposeDraft]);
+  }, [updateComposeDraft]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -705,7 +648,7 @@ export function MailAppWorkspace({
         draft={composeDraft}
         onDraftChange={updateComposeDraft}
         onOpenChange={handleComposeOpenChange}
-        onSent={handleManualComposeSent}
+        onSent={() => updateComposeDraft(emptyComposeDraft)}
       />
 
       <AppShell
@@ -733,6 +676,8 @@ export function MailAppWorkspace({
         input={assistantInput}
         onInputChange={setAssistantInput}
         isLoading={assistantLoading}
+        isBusy={assistantBusy}
+        typingAssistantText={typingAssistantText}
         onSubmitPrompt={submitAssistantPrompt}
         onSuggestionSelect={setAssistantInput}
         activeComposeMessageId={activeComposeMessageId}

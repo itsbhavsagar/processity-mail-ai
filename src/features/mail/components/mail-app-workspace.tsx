@@ -6,7 +6,10 @@ import { useAssistant } from "@/features/assistant/components/assistant-provider
 import { markThreadRead } from "@/features/mail/actions/mark-thread-read";
 import type { MailConversation } from "@/features/mail/types/mail-conversation";
 import type { MailThread } from "@/features/mail/types/mail-thread";
-import { emptyComposeDraft } from "@/features/mail/types/compose-draft";
+import {
+  emptyComposeDraft,
+  isComposeDraft,
+} from "@/features/mail/types/compose-draft";
 import type { MailboxId } from "@/shared/constants";
 
 import { AppShell } from "@/app/(main)/app/_components/app-shell";
@@ -76,8 +79,13 @@ export function MailAppWorkspace({
   );
 
   useEffect(() => {
-    syncMailContext({ mailbox, conversationId, conversation });
-  }, [mailbox, conversationId, conversation, syncMailContext]);
+    syncMailContext({
+      mailbox,
+      conversationId,
+      conversation,
+      currentUserEmail,
+    });
+  }, [mailbox, conversationId, conversation, currentUserEmail, syncMailContext]);
 
   useEffect(() => {
     if (!conversationId || conversationError || !conversation) {
@@ -133,7 +141,9 @@ export function MailAppWorkspace({
     <>
       <ComposeEmailDialog
         open={isComposeOpen}
-        draft={composeDraft}
+        draft={
+          isComposeDraft(composeDraft) ? composeDraft : emptyComposeDraft
+        }
         onDraftChange={updateComposeDraft}
         onOpenChange={setComposeOpen}
         onSent={() => updateComposeDraft(emptyComposeDraft)}

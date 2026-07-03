@@ -14,7 +14,7 @@ import { AssistantMessageRenderer } from "@/features/assistant/components/assist
 import { AssistantTextMessageView } from "@/features/assistant/components/messages/assistant-text-message";
 import { AssistantTypingIndicator } from "@/features/assistant/components/assistant-typing-indicator";
 import type { AssistantChatMessage } from "@/features/assistant/types/assistant-message";
-import type { ComposeDraft } from "@/features/mail/types/compose-draft";
+import type { AssistantDraft } from "@/features/mail/types/compose-draft";
 import { Button, ScrollArea, Textarea } from "@/shared/ui";
 import { cn } from "@/shared/lib/utils";
 
@@ -35,8 +35,8 @@ interface AssistantPanelProps {
   onSubmitPrompt: () => void;
   onSuggestionSelect: (prompt: string) => void;
   activeComposeMessageId?: string | null;
-  composeDraft: ComposeDraft;
-  onComposeDraftChange: (draft: ComposeDraft) => void;
+  composeDraft: AssistantDraft;
+  onComposeDraftChange: (draft: AssistantDraft) => void;
   onComposeSend: () => void;
   onDevCompose?: () => void;
   onDevConfirmSend?: () => void;

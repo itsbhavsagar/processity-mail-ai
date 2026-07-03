@@ -29,7 +29,7 @@ import {
   toApiMessageContent,
 } from "@/features/assistant/lib/assistant-message-utils";
 import {
-  runComposeTypingAnimation,
+  runDraftTypingAnimation,
   typeAssistantMessage,
 } from "@/features/assistant/lib/compose-typing-animation";
 import type {
@@ -44,19 +44,25 @@ import {
 import type {
   AssistantResponse,
   ComposeEmailPayload,
+  ReplyEmailPayload,
   SearchEmailsPayload,
 } from "@/features/assistant/types/assistant-action";
+import { buildReplyDraftFromMailContext } from "@/features/mail/lib/build-reply-draft";
 import { buildMailboxUrl } from "@/features/mail/lib/mailbox-url";
 import {
-  draftToFormData,
+  assistantDraftToFormData,
   getPrimaryRecipientEmail,
+  getReplyRecipientEmail,
 } from "@/features/mail/lib/compose-send";
 import { searchMailThreads } from "@/features/mail/actions/search-mail-threads";
 import { sendEmail } from "@/features/mail/actions/send-email";
+import { sendReplyEmail } from "@/features/mail/actions/send-reply-email";
 import type { MailThread } from "@/features/mail/types/mail-thread";
 import {
   emptyComposeDraft,
-  type ComposeDraft,
+  emptyReplyDraft,
+  isReplyDraft,
+  type AssistantDraft,
 } from "@/features/mail/types/compose-draft";
 const DEV_COMPOSE_RESPONSE: AssistantResponse = {
   thought: "Drafting a sample email.",
@@ -89,11 +95,11 @@ type AssistantContextValue = {
   searchThreads: MailThread[];
   isSearchLoading: boolean;
   clearSearch: () => void;
-  composeDraft: ComposeDraft;
+  composeDraft: AssistantDraft;
   isComposeOpen: boolean;
   openManualCompose: () => void;
   setComposeOpen: (open: boolean) => void;
-  updateComposeDraft: (draft: ComposeDraft) => void;
+  updateComposeDraft: (draft: AssistantDraft) => void;
   syncMailContext: (mail: AssistantMailContext) => void;
 };
 
@@ -128,13 +134,13 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   const [isSearchLoading, setIsSearchLoading] = useState(false);
   const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [composeDraft, setComposeDraft] =
-    useState<ComposeDraft>(emptyComposeDraft);
+    useState<AssistantDraft>(emptyComposeDraft);
   const [activeComposeMessageId, setActiveComposeMessageId] = useState<
     string | null
   >(null);
 
   const activeComposeMessageIdRef = useRef<string | null>(null);
-  const composeDraftRef = useRef<ComposeDraft>(emptyComposeDraft);
+  const composeDraftRef = useRef<AssistantDraft>(emptyComposeDraft);
   const fillAnimationTimersRef = useRef<number[]>([]);
   const assistantMessagesRef = useRef<AssistantChatMessage[]>([]);
 
@@ -217,7 +223,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   );
 
   const applyLiveDraft = useCallback(
-    (draft: ComposeDraft, status?: AssistantComposeDraftStatus) => {
+    (draft: AssistantDraft, status?: AssistantComposeDraftStatus) => {
       composeDraftRef.current = draft;
       setComposeDraft(draft);
 
@@ -305,12 +311,12 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   const startFillAnimation = useCallback(
     (
       messageId: string,
-      target: ComposeDraft,
+      target: AssistantDraft,
       variant: "create" | "revise" = "create",
     ) => {
       const schedule = createAnimationSchedule();
 
-      runComposeTypingAnimation(
+      runDraftTypingAnimation(
         target,
         schedule,
         (draft, status) => {
@@ -335,7 +341,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     [applyLiveDraft, createAnimationSchedule, typeAssistantText, updateComposeMessage],
   );
 
-  const updateComposeDraft = useCallback((draft: ComposeDraft) => {
+  const updateComposeDraft = useCallback((draft: AssistantDraft) => {
     composeDraftRef.current = draft;
     setComposeDraft(draft);
   }, []);
@@ -355,7 +361,8 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       payload: ComposeEmailPayload,
       updateExisting = false,
     ) => {
-      const targetDraft: ComposeDraft = {
+      const targetDraft: AssistantDraft = {
+        kind: "compose",
         to: payload.to,
         subject: payload.subject,
         body: payload.body,
@@ -394,6 +401,70 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       setAssistantMessages((current) => [
         ...supersedeDraftMessages(current),
         composeMessage,
+      ]);
+
+      startFillAnimation(messageId, targetDraft, "create");
+    },
+    [
+      clearFillAnimation,
+      startFillAnimation,
+      updateComposeDraft,
+      updateComposeMessage,
+    ],
+  );
+
+  const showAssistantReplyDraft = useCallback(
+    (
+      payload: ReplyEmailPayload,
+      updateExisting = false,
+    ) => {
+      const mail = mailContextRef.current;
+      const targetDraft = buildReplyDraftFromMailContext(
+        mail,
+        payload.threadId,
+        payload.body,
+        mail.currentUserEmail,
+      );
+
+      if (!targetDraft) {
+        toast.error("Open the conversation you want to reply to first.");
+        setAssistantBusy(false);
+        return;
+      }
+
+      if (updateExisting && activeComposeMessageIdRef.current) {
+        const messageId = activeComposeMessageIdRef.current;
+        clearFillAnimation();
+        updateComposeDraft(emptyReplyDraft);
+        updateComposeMessage(messageId, {
+          content: "",
+          draft: emptyReplyDraft,
+          status: "preparing",
+          variant: "revise",
+        });
+        startFillAnimation(messageId, targetDraft, "revise");
+        return;
+      }
+
+      const messageId = crypto.randomUUID();
+
+      activeComposeMessageIdRef.current = messageId;
+      setActiveComposeMessageId(messageId);
+      updateComposeDraft(emptyReplyDraft);
+
+      const replyMessage: AssistantComposeDraftMessage = {
+        id: messageId,
+        role: "assistant",
+        kind: "compose_draft",
+        content: "",
+        draft: emptyReplyDraft,
+        status: "preparing",
+        variant: "create",
+      };
+
+      setAssistantMessages((current) => [
+        ...supersedeDraftMessages(current),
+        replyMessage,
       ]);
 
       startFillAnimation(messageId, targetDraft, "create");
@@ -449,16 +520,20 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
 
   const sendCompose = useCallback(() => {
     const draft = composeDraftRef.current;
-    const formData = draftToFormData(draft);
-    const recipientEmail = getPrimaryRecipientEmail(draft.to);
+    const formData = assistantDraftToFormData(draft);
+    const recipientEmail = isReplyDraft(draft)
+      ? getReplyRecipientEmail(draft)
+      : getPrimaryRecipientEmail(draft.to);
 
     markActiveDraftSending();
 
     startSendTransition(async () => {
-      const result = await sendEmail(formData);
+      const result = isReplyDraft(draft)
+        ? await sendReplyEmail(formData)
+        : await sendEmail(formData);
 
       if (result.success) {
-        toast.success("Email sent", {
+        toast.success(isReplyDraft(draft) ? "Reply sent" : "Email sent", {
           description: recipientEmail ? `Sent to ${recipientEmail}` : undefined,
         });
         setIsComposeOpen(false);
@@ -481,7 +556,9 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      toast.error("Couldn't send email");
+      toast.error(
+        isReplyDraft(draft) ? "Couldn't send reply" : "Couldn't send email",
+      );
     });
   }, [
     markActiveDraftSendFailed,
@@ -492,8 +569,9 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
 
   const processAssistantResponse = useCallback(
     (response: AssistantResponse) => {
-      const hasCompose = response.actions.some(
-        (action) => action.type === "compose_email",
+      const hasDraftAction = response.actions.some(
+        (action) =>
+          action.type === "compose_email" || action.type === "reply_email",
       );
       const wantsSend = response.actions.some(
         (action) => action.type === "send_email",
@@ -502,7 +580,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         activeComposeMessageIdRef.current,
         assistantMessagesRef.current,
       );
-      const isDraftRevision = hasCompose && Boolean(activeMessage);
+      const isDraftRevision = hasDraftAction && Boolean(activeMessage);
 
       let thought = response.thought;
 
@@ -515,6 +593,9 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
           showAssistantComposeDraft: (payload) => {
             showAssistantComposeDraft(payload, isDraftRevision);
           },
+          showAssistantReplyDraft: (payload) => {
+            showAssistantReplyDraft(payload, isDraftRevision);
+          },
           applySearchEmails: applySearchEmails,
           openEmail: (payload) => {
             openEmail(payload.threadId);
@@ -525,7 +606,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
             }
           },
         }).finally(() => {
-          if (!hasCompose) {
+          if (!hasDraftAction) {
             setAssistantBusy(false);
           }
         });
@@ -537,6 +618,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       openEmail,
       sendCompose,
       showAssistantComposeDraft,
+      showAssistantReplyDraft,
       typeAssistantText,
     ],
   );

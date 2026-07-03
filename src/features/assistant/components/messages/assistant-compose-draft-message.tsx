@@ -6,14 +6,15 @@ import {
   isComposeTypingStatus,
   type AssistantComposeDraftMessage,
 } from "@/features/assistant/types/assistant-message";
-import type { ComposeDraft } from "@/features/mail/types/compose-draft";
+import type { AssistantDraft } from "@/features/mail/types/compose-draft";
+import { canSendDraft } from "@/features/assistant/lib/assistant-message-utils";
 import { cn } from "@/shared/lib/utils";
 
 interface AssistantComposeDraftMessageProps {
   message: AssistantComposeDraftMessage;
   isLive: boolean;
-  composeDraft: ComposeDraft;
-  onComposeDraftChange: (draft: ComposeDraft) => void;
+  composeDraft: AssistantDraft;
+  onComposeDraftChange: (draft: AssistantDraft) => void;
   onComposeSend: () => void;
 }
 
@@ -27,7 +28,7 @@ export function AssistantComposeDraftMessageView({
   const isSuperseded = message.status === "superseded";
   const displayedDraft = isLive ? composeDraft : message.draft;
   const canSend =
-    isLive && message.status === "draft" && Boolean(composeDraft.to.trim());
+    isLive && message.status === "draft" && canSendDraft(composeDraft);
   const hideThought =
     message.status === "preparing" || isComposeTypingStatus(message.status);
 

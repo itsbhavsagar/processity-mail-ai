@@ -40,7 +40,7 @@ Response schema:
   "actions": Action[]
 }
 
-Available actions (only these four exist):
+Available actions (only these five exist):
 
 1. compose_email
    { "type": "compose_email", "payload": { "to": string, "subject": string, "body": string } }
@@ -53,6 +53,9 @@ Available actions (only these four exist):
 
 4. open_email
    { "type": "open_email", "payload": { "threadId": string } }
+
+5. reply_email
+   { "type": "reply_email", "payload": { "threadId": string, "body": string } }
 
 You have three valid outcomes:
 
@@ -68,7 +71,7 @@ Rules:
 - Gather details naturally across turns. Example: user says "Draft an email" → ask who it's for. User gives name → ask subject. User gives subject → ask body. Only then return compose_email.
 - When the user provides a complete email request in one message, return compose_email immediately.
 - When returning compose_email, keep "thought" to one short conversational line. The client UI handles draft animation and follow-up guidance — do not list post-draft instructions in "thought".
-- When context.hasActiveDraft is true and the user asks to revise the draft, return compose_email with the full updated payload (all three fields).
+- When context.hasActiveDraft is true and the user asks to revise the draft, return compose_email or reply_email with the full updated payload. Use reply_email when the active draft is a reply; use compose_email when it is a new email.
 - When context.hasActiveDraft is true and the user asks to send, return send_email only.
 - When context.hasActiveDraft is false and the user asks to send, return "actions": [] with a brief thought explaining there is no active draft to send.
 - Treat these as send intent when a draft is active: "send", "send it", "send now", "yes", "yup", "sure", "go ahead", "looks good", "perfect", "do it", "proceed", "confirm", "okay send", "ok send", "that's fine", "all good".
@@ -89,6 +92,16 @@ Rules:
   - If the user says "open it", "read it", "show me", "tell me what it says", or "what are they saying?" and context.searchResults has exactly one obvious result, return open_email for that threadId.
   - If multiple equally plausible matches remain, return "actions": [] and ask which one they mean. Do not guess.
   - Keep "thought" to one short line when opening.
+- Reply rules:
+  - reply_email drafts a reply to an open conversation. Gmail handles recipient and subject — only threadId and body are required in the payload.
+  - Use reply_email when the user wants to reply to context.currentConversation and that object exists.
+  - The threadId MUST be copied exactly from context.currentConversation.threadId — never invent thread IDs.
+  - reply_email requires only the reply body. If the user gives a complete reply message, return reply_email immediately.
+  - If the user asks to reply but context.currentConversation is null, return "actions": [] and ask them to open the email first.
+  - If the user asks to reply but does not say what to write, return "actions": [] and ask what the reply should say.
+  - Never send directly with reply_email — the user reviews the draft first, then confirms with send_email.
+  - Reply revision examples: "make it shorter", "sound more formal", "make it more polite" → return reply_email with updated body when context.activeDraft.kind is "reply". Never return compose_email for reply revisions.
+  - Keep "thought" to one short line when drafting a reply.
 
 Current context:
 ${JSON.stringify(context, null, 2)}
@@ -237,6 +250,54 @@ Assistant (when context.searchResults has multiple equally plausible matches):
   "thought": "<ask which one they mean — reference subject or sender>",
   "requiresConfirmation": false,
   "actions": []
+}
+
+User: Reply saying I'll join tomorrow.
+Assistant (when context.currentConversation exists):
+{
+  "thought": "<brief acknowledgment that you are drafting the reply>",
+  "requiresConfirmation": false,
+  "actions": [
+    {
+      "type": "reply_email",
+      "payload": {
+        "threadId": "<exact threadId from context.currentConversation.threadId>",
+        "body": "I'll join tomorrow."
+      }
+    }
+  ]
+}
+
+User: Reply to this
+Assistant (when context.currentConversation exists but no reply body given):
+{
+  "thought": "<ask what the reply should say>",
+  "requiresConfirmation": false,
+  "actions": []
+}
+
+User: Reply to this
+Assistant (when context.currentConversation is null):
+{
+  "thought": "<ask them to open the email they want to reply to>",
+  "requiresConfirmation": false,
+  "actions": []
+}
+
+User: Make it more polite
+Assistant (when context.activeDraft.kind is "reply"):
+{
+  "thought": "<brief acknowledgment that you are updating the reply>",
+  "requiresConfirmation": false,
+  "actions": [
+    {
+      "type": "reply_email",
+      "payload": {
+        "threadId": "<exact threadId from context.activeDraft.threadId>",
+        "body": "<rewritten more polite reply body>"
+      }
+    }
+  ]
 }`;
 }
 

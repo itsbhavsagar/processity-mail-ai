@@ -19,6 +19,8 @@ export function normalizeMessage(gmailMessage: GmailMessage): MailMessage {
   const to = getHeader(headers, "To");
   const cc = getHeader(headers, "Cc");
   const subject = getHeader(headers, "Subject") || "(No subject)";
+  const rfcMessageId = getHeader(headers, "Message-ID") || undefined;
+  const references = getHeader(headers, "References") || undefined;
   const dateValue = getHeader(headers, "Date");
   const sentAt = dateValue ? new Date(dateValue) : new Date();
   const sender = parseMailboxList(from)[0] ?? { name: "Unknown", email: "" };
@@ -30,6 +32,8 @@ export function normalizeMessage(gmailMessage: GmailMessage): MailMessage {
     to: parseMailboxList(to),
     cc: parseMailboxList(cc),
     subject,
+    rfcMessageId,
+    references,
     bodyHtml: html,
     bodyText: text,
     sentAt: sentAt.toISOString(),

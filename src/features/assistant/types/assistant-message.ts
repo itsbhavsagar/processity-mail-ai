@@ -1,4 +1,5 @@
-import type { ComposeDraft } from "@/features/mail/types/compose-draft";
+import type { AssistantDraft } from "@/features/mail/types/compose-draft";
+import { isComposeDraft } from "@/features/mail/types/compose-draft";
 
 export type AssistantComposeDraftStatus =
   | "preparing"
@@ -15,7 +16,7 @@ export type AssistantComposeDraftMessage = {
   role: "assistant";
   kind: "compose_draft";
   content: string;
-  draft: ComposeDraft;
+  draft: AssistantDraft;
   status: AssistantComposeDraftStatus;
   variant?: "create" | "revise";
   sentAt?: string;
@@ -57,7 +58,12 @@ export function isSupersedableDraftStatus(
 
 export function activeFieldForComposeStatus(
   status: AssistantComposeDraftStatus,
-): keyof ComposeDraft | null {
+  draft?: AssistantDraft,
+): "to" | "subject" | "body" | null {
+  if (draft && !isComposeDraft(draft)) {
+    return status === "typing_body" ? "body" : null;
+  }
+
   if (status === "typing_to") {
     return "to";
   }

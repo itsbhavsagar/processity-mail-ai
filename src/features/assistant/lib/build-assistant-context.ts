@@ -1,7 +1,8 @@
 import type { AssistantContext, AssistantSearchResult } from "@/features/assistant/types/assistant-action";
+import { toActiveDraftContext } from "@/features/assistant/lib/assistant-message-utils";
 import type { MailConversation } from "@/features/mail/types/mail-conversation";
 import type { MailThread } from "@/features/mail/types/mail-thread";
-import type { ComposeDraft } from "@/features/mail/types/compose-draft";
+import type { AssistantDraft } from "@/features/mail/types/compose-draft";
 import { getMailboxDisplayName } from "@/features/mail/lib/parse-mailbox";
 import type { MailboxId } from "@/shared/constants";
 
@@ -9,6 +10,7 @@ export type AssistantMailContext = {
   mailbox: MailboxId;
   conversationId?: string;
   conversation: MailConversation | null;
+  currentUserEmail?: string;
 };
 
 export function toSearchResults(threads: MailThread[]): AssistantSearchResult[] {
@@ -23,7 +25,7 @@ export function toSearchResults(threads: MailThread[]): AssistantSearchResult[] 
 export function buildAssistantContext(options: {
   mail: AssistantMailContext;
   hasActiveDraft: boolean;
-  activeDraft: ComposeDraft | null;
+  activeDraft: AssistantDraft | null;
   searchResults: AssistantSearchResult[] | null;
 }): AssistantContext {
   const latestMessage = options.mail.conversation?.messages.at(-1);
@@ -41,7 +43,7 @@ export function buildAssistantContext(options: {
           }
         : null,
     hasActiveDraft: options.hasActiveDraft,
-    activeDraft: options.activeDraft,
+    activeDraft: toActiveDraftContext(options.activeDraft),
     searchResults: options.searchResults,
   };
 }

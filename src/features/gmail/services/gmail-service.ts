@@ -1,9 +1,10 @@
-import { buildMimeMessage } from "@/features/gmail/mappers/build-mime-message";
+import { buildMimeMessage, buildReplyMimeMessage } from "@/features/gmail/mappers/build-mime-message";
 import { normalizeConversation } from "@/features/gmail/mappers/normalize-conversation";
 import { normalizeThread } from "@/features/gmail/mappers/normalize-thread";
 import type { GmailThreadResponse } from "@/features/gmail/types/gmail-api";
 import type { MailConversation } from "@/features/mail/types/mail-conversation";
 import type { MailDraft } from "@/features/mail/types/mail-draft";
+import type { ReplyMailDraft } from "@/features/mail/types/reply-mail-draft";
 import type { MailThread } from "@/features/mail/types/mail-thread";
 import {
   getMailboxById,
@@ -200,6 +201,35 @@ export async function sendMail(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ raw }),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new GmailApiError(response.status);
+  }
+
+  const data = (await response.json()) as GmailSendMessageResponse;
+
+  return { messageId: data.id };
+}
+
+export async function sendReplyMail(
+  accessToken: string,
+  draft: ReplyMailDraft,
+  senderEmail: string,
+): Promise<{ messageId: string }> {
+  const raw = buildReplyMimeMessage(draft, senderEmail);
+
+  const response = await fetch(`${GMAIL_API_BASE}/messages/send`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      raw,
+      threadId: draft.threadId,
+    }),
     cache: "no-store",
   });
 

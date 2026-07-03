@@ -37,11 +37,20 @@ const openEmailActionSchema = z.object({
   }),
 });
 
+const replyEmailActionSchema = z.object({
+  type: z.literal("reply_email"),
+  payload: z.object({
+    threadId: z.string().min(1),
+    body: z.string().min(1),
+  }),
+});
+
 export const assistantActionSchema = z.discriminatedUnion("type", [
   composeEmailActionSchema,
   sendEmailActionSchema,
   searchEmailsActionSchema,
   openEmailActionSchema,
+  replyEmailActionSchema,
 ]);
 
 export type AssistantAction = z.infer<typeof assistantActionSchema>;
@@ -69,6 +78,11 @@ export type OpenEmailPayload = Extract<
   { type: "open_email" }
 >["payload"];
 
+export type ReplyEmailPayload = Extract<
+  AssistantAction,
+  { type: "reply_email" }
+>["payload"];
+
 export const assistantSearchResultSchema = z.object({
   threadId: z.string(),
   from: z.string(),
@@ -91,19 +105,33 @@ export const assistantConversationContextSchema = z
   })
   .nullable();
 
-const composeDraftContextSchema = z
-  .object({
-    to: z.string(),
-    subject: z.string(),
-    body: z.string(),
-  })
+const composeDraftContextSchema = z.object({
+  kind: z.literal("compose"),
+  to: z.string(),
+  subject: z.string(),
+  body: z.string(),
+});
+
+const replyDraftContextSchema = z.object({
+  kind: z.literal("reply"),
+  threadId: z.string(),
+  recipient: z.string(),
+  subject: z.string(),
+  body: z.string(),
+});
+
+const activeDraftContextSchema = z
+  .discriminatedUnion("kind", [
+    composeDraftContextSchema,
+    replyDraftContextSchema,
+  ])
   .nullable();
 
 export const assistantContextSchema = z.object({
   currentMailbox: mailboxTypeSchema.default("inbox"),
   currentConversation: assistantConversationContextSchema,
   hasActiveDraft: z.boolean(),
-  activeDraft: composeDraftContextSchema,
+  activeDraft: activeDraftContextSchema,
   searchResults: z.array(assistantSearchResultSchema).nullable(),
 });
 

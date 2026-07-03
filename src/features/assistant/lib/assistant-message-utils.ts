@@ -4,7 +4,11 @@ import {
   type AssistantChatMessage,
   type AssistantComposeDraftMessage,
 } from "@/features/assistant/types/assistant-message";
-import type { ComposeDraft } from "@/features/mail/types/compose-draft";
+import {
+  isComposeDraft,
+  isReplyDraft,
+  type AssistantDraft,
+} from "@/features/mail/types/compose-draft";
 
 export function createTextMessage(
   role: "user" | "assistant",
@@ -18,13 +22,39 @@ export function createTextMessage(
   };
 }
 
+function formatDraftSummary(draft: AssistantDraft): string {
+  if (isReplyDraft(draft)) {
+    return [
+      "Active reply draft:",
+      `Replying to: ${draft.recipient}`,
+      `Subject: ${draft.subject}`,
+      `Body: ${draft.body}`,
+    ].join("\n");
+  }
+
+  return [
+    "Active draft email:",
+    `To: ${draft.to}`,
+    `Subject: ${draft.subject}`,
+    `Body: ${draft.body}`,
+  ].join("\n");
+}
+
+function formatSentDraftSummary(draft: AssistantDraft): string {
+  if (isReplyDraft(draft)) {
+    return `[Reply already sent to ${draft.recipient}. Subject: ${draft.subject}. There is no active draft.]`;
+  }
+
+  return `[Email already sent to ${draft.to}. Subject: ${draft.subject}. There is no active draft.]`;
+}
+
 export function toApiMessageContent(message: AssistantChatMessage): string {
   if (message.kind === "text") {
     return message.content;
   }
 
   if (message.status === "sent") {
-    return `${message.content}\n\n[Email already sent to ${message.draft.to}. Subject: ${message.draft.subject}. There is no active draft.]`;
+    return `${message.content}\n\n${formatSentDraftSummary(message.draft)}`;
   }
 
   if (message.status === "superseded") {
@@ -42,18 +72,13 @@ export function toApiMessageContent(message: AssistantChatMessage): string {
     return `${message.content}\n\n[Email is currently being sent.]`;
   }
 
-  const draftSummary = [
-    "Active draft email:",
-    `To: ${message.draft.to}`,
-    `Subject: ${message.draft.subject}`,
-    `Body: ${message.draft.body}`,
-  ].join("\n");
+  const draftSummary = formatDraftSummary(message.draft);
 
   const summary = message.content
     ? `${message.content}\n\n${draftSummary}`
     : draftSummary;
 
-  return summary.trim() || "Draft email prepared.";
+  return summary.trim() || "Draft prepared.";
 }
 
 export function isActiveDraftMessage(
@@ -89,10 +114,45 @@ export function findActiveDraftMessage(
   return isActiveDraftMessage(message) ? message : undefined;
 }
 
+export function canSendDraft(draft: AssistantDraft): boolean {
+  if (isComposeDraft(draft)) {
+    return draft.to.trim().length > 0 && draft.body.trim().length > 0;
+  }
+
+  return (
+    draft.threadId.trim().length > 0 &&
+    draft.recipientEmail.trim().length > 0 &&
+    draft.body.trim().length > 0
+  );
+}
+
+export function toActiveDraftContext(draft: AssistantDraft | null) {
+  if (!draft) {
+    return null;
+  }
+
+  if (isReplyDraft(draft)) {
+    return {
+      kind: "reply" as const,
+      threadId: draft.threadId,
+      recipient: draft.recipient,
+      subject: draft.subject,
+      body: draft.body,
+    };
+  }
+
+  return {
+    kind: "compose" as const,
+    to: draft.to,
+    subject: draft.subject,
+    body: draft.body,
+  };
+}
+
 export function resolveActiveDraft(
   messageId: string | null,
   messages: AssistantChatMessage[],
-  draft: ComposeDraft,
+  draft: AssistantDraft,
 ) {
   const message = findActiveDraftMessage(messageId, messages);
 
@@ -107,6 +167,6 @@ export function resolveActiveDraft(
   return {
     hasActiveDraft: true as const,
     activeDraft: draft,
-    canSend: draft.to.trim().length > 0,
+    canSend: canSendDraft(draft),
   };
 }

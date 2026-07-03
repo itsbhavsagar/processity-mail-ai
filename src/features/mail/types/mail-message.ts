@@ -6,9 +6,13 @@ export interface MailMessage {
   to: MailAddress[];
   cc: MailAddress[];
   subject: string;
-  /** Sanitized at render time — raw HTML from Gmail when available. */
+
+  rfcMessageId?: string;
+
+  references?: string;
+
   bodyHtml?: string;
-  /** Plain-text part when Gmail provides one. */
+
   bodyText?: string;
   sentAt: string;
 }

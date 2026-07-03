@@ -3,13 +3,13 @@
 import { AssistantComposeDraftMessageView } from "@/features/assistant/components/messages/assistant-compose-draft-message";
 import { AssistantTextMessageView } from "@/features/assistant/components/messages/assistant-text-message";
 import type { AssistantChatMessage } from "@/features/assistant/types/assistant-message";
-import type { ComposeDraft } from "@/features/mail/types/compose-draft";
+import type { AssistantDraft } from "@/features/mail/types/compose-draft";
 
 interface AssistantMessageRendererProps {
   message: AssistantChatMessage;
   activeComposeMessageId?: string | null;
-  composeDraft: ComposeDraft;
-  onComposeDraftChange: (draft: ComposeDraft) => void;
+  composeDraft: AssistantDraft;
+  onComposeDraftChange: (draft: AssistantDraft) => void;
   onComposeSend: () => void;
 }
 

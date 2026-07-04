@@ -77,27 +77,8 @@ You'll need a Google Cloud project with the Gmail API enabled and an OAuth 2.0 c
 
 Other scripts: `npm run build`, `npm run lint`, `npm run typecheck`, `npm run format`.
 
-## Screenshots
 
-<!-- TODO: login, mailbox view, conversation view, focus mode -->
-<!-- TODO: short demo video — assistant composing / searching / replying -->
 
-## Current limitations
-
-- Gmail only — no other providers
-- No real-time sync; the inbox refreshes on navigation or after send, not automatically
-- No UI filter controls — the assistant can filter via Gmail query syntax, but there are no dropdowns/date pickers yet
-- No forwarding via the assistant, and no explicit "are you sure?" step before send (the draft-first flow is the safeguard today)
-- HTML emails are converted to plain text
-- No tests, not deployed
-
-## What I'd improve with more time
-
-- Real-time sync (Gmail push/Pub-Sub, or polling as a fallback) — the one graded requirement I haven't started
-- UI filter controls, reusing the Gmail query logic the assistant already has
-- Forward via assistant, and an explicit send confirmation step
-- Tests around the assistant's action validation and the mail Server Actions
-- Decide whether to keep `local-intent-router.ts` — it fast-paths a few common replies ("send it", "cancel") around the LLM call, but now that the prompt is small, the savings may not be worth maintaining a second place that interprets natural language
 
 ## Docs
 

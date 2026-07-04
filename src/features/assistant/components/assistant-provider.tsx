@@ -38,10 +38,6 @@ import {
   runDraftTypingAnimation,
   typeAssistantMessage,
 } from "@/features/assistant/lib/compose-typing-animation";
-import {
-  matchLocalIntent,
-  type LocalIntentResult,
-} from "@/features/assistant/lib/local-intent-router";
 import { trimAssistantMessagesForApi } from "@/features/assistant/lib/trim-assistant-request";
 import {
   AssistantClientError,
@@ -74,26 +70,6 @@ import {
   type AssistantDraft,
 } from "@/features/mail/types/compose-draft";
 import type { MailThread } from "@/features/mail/types/mail-thread";
-const DEV_COMPOSE_RESPONSE: AssistantResponse = {
-  thought: "Drafting a sample email.",
-  requiresConfirmation: false,
-  actions: [
-    {
-      type: "compose_email",
-      payload: {
-        to: "john@example.com",
-        subject: "Meeting Tomorrow",
-        body: "Let's meet at 3pm.",
-      },
-    },
-  ],
-};
-
-const DEV_CONFIRM_SEND_RESPONSE: AssistantResponse = {
-  thought: "Sending now.",
-  requiresConfirmation: false,
-  actions: [{ type: "send_email" }],
-};
 
 const defaultMailContext: AssistantMailContext = {
   mailbox: "inbox",
@@ -679,78 +655,6 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     ],
   );
 
-  const getActiveDraftStatus = useCallback(() => {
-    const messageId = activeComposeMessageIdRef.current;
-    if (!messageId) {
-      return null;
-    }
-
-    const message = assistantMessagesRef.current.find(
-      (entry) => entry.id === messageId,
-    );
-
-    return message?.kind === "compose_draft" ? message.status : null;
-  }, []);
-
-  const appendAssistantText = useCallback((text: string) => {
-    if (!text.trim()) {
-      setAssistantBusy(false);
-      return;
-    }
-
-    setAssistantMessages((current) => [
-      ...current,
-      createTextMessage("assistant", text),
-    ]);
-    setAssistantBusy(false);
-  }, []);
-
-  const discardActiveDraft = useCallback(() => {
-    clearFillAnimation();
-    setAssistantMessages((current) => supersedeDraftMessages(current));
-    clearActiveComposeMessage();
-    updateComposeDraft(emptyComposeDraft);
-  }, [clearActiveComposeMessage, clearFillAnimation, updateComposeDraft]);
-
-  const handleLocalIntent = useCallback(
-    (intent: LocalIntentResult) => {
-      switch (intent.kind) {
-        case "send_draft":
-          markActiveDraftSending();
-          sendCompose();
-          setAssistantBusy(false);
-          break;
-        case "retry_send":
-          sendCompose();
-          setAssistantBusy(false);
-          break;
-        case "open_email":
-          openEmail(intent.threadId);
-          setAssistantBusy(false);
-          break;
-        case "discard_draft":
-          discardActiveDraft();
-          appendAssistantText(ASSISTANT_COPY.localIntent.draftDiscarded);
-          break;
-        case "assistant_response":
-          if (intent.response.actions.length > 0) {
-            processAssistantResponse(intent.response);
-          } else {
-            appendAssistantText(intent.response.thought);
-          }
-          break;
-      }
-    },
-    [
-      appendAssistantText,
-      discardActiveDraft,
-      markActiveDraftSending,
-      openEmail,
-      processAssistantResponse,
-      sendCompose,
-    ],
-  );
-
   const runAssistantPrompt = useCallback(
     async (prompt: string) => {
       const trimmed = prompt.trim();
@@ -772,36 +676,12 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         : null;
       const mail = mailContextRef.current;
       const priorMessages = assistantMessagesRef.current;
-      const { canSend } = resolveActiveDraft(
-        activeComposeMessageIdRef.current,
-        priorMessages,
-        composeDraftRef.current,
-      );
-      const draftStatus = getActiveDraftStatus();
       const context = buildAssistantContext({
         mail,
         hasActiveDraft,
         activeDraft,
         searchResults,
       });
-
-      const localIntent = matchLocalIntent(trimmed, {
-        canSend,
-        hasActiveDraft,
-        draftStatus,
-        searchResults,
-      });
-
-      if (localIntent) {
-        if (process.env.NODE_ENV === "development") {
-          console.log("[CommandMail AI]", {
-            type: "local_intent",
-            intent: localIntent.kind,
-          });
-        }
-        handleLocalIntent(localIntent);
-        return;
-      }
 
       const cacheKey = buildAssistantCacheKey(trimmed, context);
       const cachedResponse = getCachedAssistantResponse(cacheKey);
@@ -850,8 +730,6 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       activeSearchQuery,
       clearFillAnimation,
       getActiveDraftContext,
-      getActiveDraftStatus,
-      handleLocalIntent,
       processAssistantResponse,
       searchThreads,
       typeAssistantText,
@@ -870,27 +748,6 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     },
     [assistantInput, runAssistantPrompt],
   );
-
-  const handleDevCompose = useCallback(() => {
-    setAssistantBusy(true);
-    setAssistantMessages((current) => [
-      ...current,
-      createTextMessage(
-        "user",
-        "Send an email to john@example.com with subject Meeting Tomorrow and body Let's meet at 3pm.",
-      ),
-    ]);
-    processAssistantResponse(DEV_COMPOSE_RESPONSE);
-  }, [processAssistantResponse]);
-
-  const handleDevConfirmSend = useCallback(() => {
-    setAssistantBusy(true);
-    setAssistantMessages((current) => [
-      ...current,
-      createTextMessage("user", "Send it"),
-    ]);
-    processAssistantResponse(DEV_CONFIRM_SEND_RESPONSE);
-  }, [processAssistantResponse]);
 
   const setComposeOpen = useCallback(
     (open: boolean) => {
@@ -935,14 +792,6 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         composeDraft={composeDraft}
         onComposeDraftChange={updateComposeDraft}
         onComposeSend={sendCompose}
-        onDevCompose={
-          process.env.NODE_ENV === "development" ? handleDevCompose : undefined
-        }
-        onDevConfirmSend={
-          process.env.NODE_ENV === "development"
-            ? handleDevConfirmSend
-            : undefined
-        }
       />
     </AssistantContext.Provider>
   );

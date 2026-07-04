@@ -59,13 +59,4 @@ Review the changes, then say "Send it" when you're ready—or keep editing.`,
     sendLabel: "Send message",
     voiceLabel: "Voice input (coming soon)",
   },
-
-  localIntent: {
-    greeting:
-      "Hi! I can help you compose email, search your inbox, or open a thread. What would you like to do?",
-    thanks: "You're welcome! Let me know if you need anything else.",
-    help: "You can ask me to draft or send email, search your inbox, open a thread, or reply to the conversation you're viewing.",
-    draftDiscarded: "Draft discarded.",
-    searchFirst: "Search for emails first, then I can open one for you.",
-  },
 } as const;

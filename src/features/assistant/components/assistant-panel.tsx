@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 import {
   FiArrowRight,
-  FiChevronDown,
   FiClock,
   FiEdit3,
   FiMail,
@@ -35,7 +34,11 @@ const SUGGESTIONS = [
     startsCompose: true,
   },
   { title: "Show unread emails", value: "Show unread emails.", icon: FiMail },
-  { title: "Find today's emails", value: "Show today's emails.", icon: FiClock },
+  {
+    title: "Find today's emails",
+    value: "Show today's emails.",
+    icon: FiClock,
+  },
 ] as const;
 
 function buildComposeStarterInstruction(draft: ComposeDraft): string {
@@ -69,8 +72,6 @@ interface AssistantPanelProps {
   composeDraft: AssistantDraft;
   onComposeDraftChange: (draft: AssistantDraft) => void;
   onComposeSend: () => void;
-  onDevCompose?: () => void;
-  onDevConfirmSend?: () => void;
 }
 
 export function AssistantPanel({
@@ -86,11 +87,8 @@ export function AssistantPanel({
   composeDraft,
   onComposeDraftChange,
   onComposeSend,
-  onDevCompose,
-  onDevConfirmSend,
 }: AssistantPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [isDebugOpen, setIsDebugOpen] = useState(false);
   const [isComposeStarterOpen, setIsComposeStarterOpen] = useState(false);
   const [composeStarterDraft, setComposeStarterDraft] =
     useState<ComposeDraft>(emptyComposeDraft);
@@ -354,50 +352,6 @@ export function AssistantPanel({
                 <FiArrowRight className="size-4" aria-hidden />
               </Button>
             </div>
-
-            {process.env.NODE_ENV === "development" &&
-            onDevCompose &&
-            onDevConfirmSend ? (
-              <div>
-                <button
-                  type="button"
-                  className="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-                  onClick={() => setIsDebugOpen((open) => !open)}
-                  aria-expanded={isDebugOpen}
-                >
-                  <FiChevronDown
-                    className={cn(
-                      "size-3.5 transition-transform",
-                      isDebugOpen ? "rotate-180" : "",
-                    )}
-                    aria-hidden
-                  />
-                  Debug
-                </button>
-                {isDebugOpen ? (
-                  <div className="mt-2 flex gap-2">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      className="h-8 flex-1 text-xs"
-                      onClick={onDevCompose}
-                    >
-                      compose_email
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-8 flex-1 text-xs"
-                      onClick={onDevConfirmSend}
-                    >
-                      send_email
-                    </Button>
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
           </form>
         </footer>
       </div>

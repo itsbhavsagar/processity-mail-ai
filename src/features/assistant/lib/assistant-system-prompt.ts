@@ -3,6 +3,19 @@ import { serializeAssistantContextForPrompt } from "@/features/assistant/lib/ser
 
 export const PROMPT_VERSION = "4";
 
+export const ACKNOWLEDGEMENT_PHRASES = [
+  "ok",
+  "okay",
+  "thanks",
+  "thank you",
+  "cool",
+  "great",
+  "awesome",
+  "nice",
+] as const;
+
+const acknowledgementPhraseList = ACKNOWLEDGEMENT_PHRASES.join(", ");
+
 const SYSTEM_PROMPT_SPEC = `You are CommandMail AI. Control a mail app via structured JSON. Return valid JSON only — no markdown fences, no text outside the object.
 
 Schema: {"thought":string,"requiresConfirmation":boolean,"actions":Action[]}
@@ -20,7 +33,7 @@ Outcomes:
 - chat/help -> actions=[], friendly thought
 
 acknowledgements:
-- standalone acknowledgements (ok, okay, thanks, thank you, cool, great, awesome, nice) are not new requests
+- standalone acknowledgements (${acknowledgementPhraseList}) are not new requests
 - if the previous action already completed (search, open, navigate, filter, compose, reply, etc.) -> actions=[], short friendly reply only
 - never reissue search_emails, compose_email, reply_email, open_email, or any other action just because searchResults/activeDraft/currentConversation is still present in context from an earlier turn — only act again on an explicit new request
 - these are not send intent — see send_email
@@ -42,7 +55,7 @@ send_email:
 - hasActiveDraft=true + explicit send confirmation -> send_email only
 - hasActiveDraft=false -> actions=[], explain no draft
 - send confirmation: yes, yup, sure, send, send it, send now, go ahead, do it, proceed, confirm, okay send, ok send
-- standalone acknowledgements (ok, okay, thanks, cool, great, awesome, nice) are NOT send confirmations — see acknowledgements
+- standalone acknowledgements (${acknowledgementPhraseList}) are NOT send confirmations — see acknowledgements
 - never claim sent unless send_email is returned
 
 draft revision (hasActiveDraft=true):
@@ -104,7 +117,15 @@ User: Reply saying I'll join tomorrow.
 
 User: thanks
 (context.searchResults still holds results from a prior search this turn)
-{"thought":"You're welcome!","requiresConfirmation":false,"actions":[]}`;
+{"thought":"You're welcome!","requiresConfirmation":false,"actions":[]}
+
+User: great
+(context.searchResults still holds results from a prior search this turn)
+{"thought":"Glad that helped.","requiresConfirmation":false,"actions":[]}
+
+User: ok
+(context.searchResults still holds results from a prior search this turn)
+{"thought":"Sounds good.","requiresConfirmation":false,"actions":[]}`;
 
 export function buildAssistantSystemPrompt(context: AssistantContext): string {
   const contextBlock = serializeAssistantContextForPrompt(context);

@@ -8,7 +8,10 @@ import { ASSISTANT_COPY } from "@/features/assistant/constants";
 import {
   logAssistantProviderError,
 } from "@/features/assistant/lib/assistant-error-messages";
-import { buildAssistantSystemPrompt } from "@/features/assistant/lib/assistant-system-prompt";
+import {
+  ACKNOWLEDGEMENT_PHRASES,
+  buildAssistantSystemPrompt,
+} from "@/features/assistant/lib/assistant-system-prompt";
 
 const DEFAULT_ASSISTANT_MODEL =
   "meta-llama/llama-4-scout-17b-16e-instruct";
@@ -178,6 +181,32 @@ function toSafeAssistantResponse(
   return FALLBACK_ASSISTANT_RESPONSE;
 }
 
+function isBareAcknowledgement(message: string): boolean {
+  const normalized = message.trim().toLowerCase();
+  return (ACKNOWLEDGEMENT_PHRASES as readonly string[]).includes(normalized);
+}
+
+function sanitizeAssistantResponse(
+  response: AssistantResponse,
+  request: AssistantRequest,
+): AssistantResponse {
+  const lastMessage = request.messages.at(-1);
+
+  if (
+    response.actions.length === 0 ||
+    lastMessage?.role !== "user" ||
+    !isBareAcknowledgement(lastMessage.content)
+  ) {
+    return response;
+  }
+
+  return {
+    thought: ASSISTANT_COPY.acknowledgementReply,
+    requiresConfirmation: false,
+    actions: [],
+  };
+}
+
 export async function generateAssistantResponse(
   request: AssistantRequest,
 ): Promise<AssistantResponse> {
@@ -260,6 +289,8 @@ export async function generateAssistantResponse(
     );
   }
 
+  const sanitized = sanitizeAssistantResponse(validated.data, request);
+
   if (process.env.NODE_ENV === "development") {
     console.log({
       assistant: {
@@ -269,10 +300,10 @@ export async function generateAssistantResponse(
         context: request.context,
         rawResponse: content,
         parsedResponse: validated.data,
-        actions: validated.data.actions,
+        actions: sanitized.actions,
       },
     });
   }
 
-  return validated.data;
+  return sanitized;
 }

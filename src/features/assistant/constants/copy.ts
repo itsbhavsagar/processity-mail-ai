@@ -14,6 +14,8 @@ Review the changes, then say "Send it" when you're ready—or keep editing.`,
   noActiveDraft:
     "There isn't an active draft to send. Would you like to compose a new email?",
 
+  acknowledgementReply: "Glad to help! Let me know if there's anything else.",
+
   unavailable: "The assistant is unavailable. Try again in a moment.",
 
   temporarilyUnavailable:

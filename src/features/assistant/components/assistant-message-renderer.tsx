@@ -1,6 +1,7 @@
 "use client";
 
 import { AssistantComposeDraftMessageView } from "@/features/assistant/components/messages/assistant-compose-draft-message";
+import { AssistantRichContentRenderer } from "@/features/assistant/components/assistant-rich-content-renderer";
 import { AssistantTextMessageView } from "@/features/assistant/components/messages/assistant-text-message";
 import type { AssistantChatMessage } from "@/features/assistant/types/assistant-message";
 import type { AssistantDraft } from "@/features/mail/types/compose-draft";
@@ -41,6 +42,8 @@ export function AssistantMessageRenderer({
         />
       );
     }
+    case "rich":
+      return <AssistantRichContentRenderer content={message.content} />;
     default:
       return null;
   }

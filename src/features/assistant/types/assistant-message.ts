@@ -1,5 +1,6 @@
 import type { AssistantDraft } from "@/features/mail/types/compose-draft";
 import { isComposeDraft } from "@/features/mail/types/compose-draft";
+import type { AssistantRichContent } from "@/features/assistant/types/assistant-rich-content";
 
 export type AssistantComposeDraftStatus =
   | "preparing"
@@ -30,9 +31,17 @@ export type AssistantTextMessage = {
   content: string;
 };
 
+export type AssistantRichMessage = {
+  id: string;
+  role: "assistant";
+  kind: "rich";
+  content: AssistantRichContent;
+};
+
 export type AssistantChatMessage =
   | AssistantTextMessage
-  | AssistantComposeDraftMessage;
+  | AssistantComposeDraftMessage
+  | AssistantRichMessage;
 
 export const COMPOSE_TYPING_STATUSES: AssistantComposeDraftStatus[] = [
   "typing_to",

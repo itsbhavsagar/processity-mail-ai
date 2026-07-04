@@ -3,7 +3,9 @@ import {
   isSupersedableDraftStatus,
   type AssistantChatMessage,
   type AssistantComposeDraftMessage,
+  type AssistantRichMessage,
 } from "@/features/assistant/types/assistant-message";
+import type { AssistantRichContent } from "@/features/assistant/types/assistant-rich-content";
 import {
   isComposeDraft,
   isReplyDraft,
@@ -18,6 +20,17 @@ export function createTextMessage(
     id: crypto.randomUUID(),
     role,
     kind: "text",
+    content,
+  };
+}
+
+export function createRichMessage(
+  content: AssistantRichContent,
+): AssistantRichMessage {
+  return {
+    id: crypto.randomUUID(),
+    role: "assistant",
+    kind: "rich",
     content,
   };
 }
@@ -51,6 +64,12 @@ function formatSentDraftSummary(draft: AssistantDraft): string {
 export function toApiMessageContent(message: AssistantChatMessage): string {
   if (message.kind === "text") {
     return message.content;
+  }
+
+  if (message.kind === "rich") {
+    // Presentational content derived from data already in context; keep a
+    // short, valid placeholder in the model-facing history.
+    return "[Structured content shown to the user.]";
   }
 
   if (message.status === "sent") {

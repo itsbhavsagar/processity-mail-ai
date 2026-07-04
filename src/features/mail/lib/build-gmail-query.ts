@@ -14,18 +14,12 @@ export const emptyMailFilters: MailFilters = {
   dateTo: "",
 };
 
-// Gmail's after:/before: with a YYYY/MM/DD date have undocumented, ambiguous
-// timezone behavior (they don't appear to use the browser's or account's local
-// time), which can leak an extra day's worth of messages across the boundary.
-// Passing Unix epoch seconds instead is unambiguous — Gmail supports this on
-// both operators — so we compute the boundary as "start of day" in the
-// browser's local timezone and convert to epoch seconds.
-function startOfLocalDayEpochSeconds(isoDate: string): number {
+export function startOfLocalDayEpochSeconds(isoDate: string): number {
   const [year, month, day] = isoDate.split("-").map(Number);
   return Math.floor(new Date(year, month - 1, day).getTime() / 1000);
 }
 
-const SECONDS_PER_DAY = 24 * 60 * 60;
+export const SECONDS_PER_DAY = 24 * 60 * 60;
 
 export function buildGmailQuery(keyword: string, filters: MailFilters): string {
   const parts: string[] = [];
@@ -49,7 +43,6 @@ export function buildGmailQuery(keyword: string, filters: MailFilters): string {
   }
 
   if (filters.dateTo) {
-    // +1 day so the end date itself is included (before: is exclusive).
     parts.push(
       `before:${startOfLocalDayEpochSeconds(filters.dateTo) + SECONDS_PER_DAY}`,
     );

@@ -1,5 +1,6 @@
 import { getServerSession } from "next-auth";
 
+import type { UserProfileMenuUser } from "@/features/auth/components/user-profile-menu";
 import { authConfig } from "@/features/auth/server/auth-config";
 import {
   GmailApiError,
@@ -43,10 +44,14 @@ function WorkspaceStatusCard({
   );
 }
 
-function GoogleSessionExpiredState() {
+function GoogleSessionExpiredState({
+  user,
+}: {
+  user?: UserProfileMenuUser;
+}) {
   return (
     <div className="flex h-dvh flex-col">
-      <AppHeader />
+      <AppHeader user={user} />
       <div className="flex min-h-0 flex-1 items-center justify-center p-6">
         <WorkspaceStatusCard
           title="Your Gmail connection expired"
@@ -65,7 +70,7 @@ export async function InboxWorkspace({
   const session = await getServerSession(authConfig);
 
   if (!session?.accessToken || session.error === "RefreshAccessTokenError") {
-    return <GoogleSessionExpiredState />;
+    return <GoogleSessionExpiredState user={session?.user} />;
   }
 
   const mailboxLabel = getMailboxById(mailbox).label;
@@ -75,7 +80,7 @@ export async function InboxWorkspace({
     threads = await listThreads(session.accessToken, mailbox);
   } catch (error) {
     if (error instanceof GmailApiError && error.status === 401) {
-      return <GoogleSessionExpiredState />;
+      return <GoogleSessionExpiredState user={session.user} />;
     }
 
     return (
@@ -106,8 +111,7 @@ export async function InboxWorkspace({
 
   return (
     <MailAppWorkspace
-      key={mailbox}
-      header={<AppHeader search={<MailSearchFilters />} />}
+      header={<AppHeader user={session.user} search={<MailSearchFilters />} />}
       mailbox={mailbox}
       threads={threads}
       conversation={conversation}

@@ -9,21 +9,47 @@ import {
   FiX,
 } from "react-icons/fi";
 
-import { ASSISTANT_COPY } from "@/features/assistant/constants";
 import { AssistantMessageRenderer } from "@/features/assistant/components/assistant-message-renderer";
-import { AssistantTextMessageView } from "@/features/assistant/components/messages/assistant-text-message";
 import { AssistantTypingIndicator } from "@/features/assistant/components/assistant-typing-indicator";
+import { AssistantTextMessageView } from "@/features/assistant/components/messages/assistant-text-message";
+import { ASSISTANT_COPY } from "@/features/assistant/constants";
 import type { AssistantChatMessage } from "@/features/assistant/types/assistant-message";
-import type { AssistantDraft } from "@/features/mail/types/compose-draft";
-import { Button, ScrollArea, Textarea } from "@/shared/ui";
+import { ComposeDraftForm } from "@/features/mail/components/compose-draft-form";
+import {
+  emptyComposeDraft,
+  type AssistantDraft,
+  type ComposeDraft,
+} from "@/features/mail/types/compose-draft";
 import { cn } from "@/shared/lib/utils";
+import { Button, ScrollArea, Textarea } from "@/shared/ui";
 
-const SUGGESTION_PROMPTS = [
-  "Draft an email",
-  "Show unread emails",
-  "Find today's emails",
-  "Summarize this conversation",
+const SUGGESTIONS = [
+  {
+    title: "Draft an email",
+    value: "Help me draft an email.",
+    startsCompose: true,
+  },
+  { title: "Show unread emails", value: "Show unread emails." },
+  { title: "Find today's emails", value: "Show today's emails." },
 ] as const;
+
+function buildComposeStarterInstruction(draft: ComposeDraft): string {
+  const parts: string[] = [];
+
+  if (draft.to.trim()) {
+    parts.push(`to ${draft.to.trim()}`);
+  }
+  if (draft.subject.trim()) {
+    parts.push(`with subject "${draft.subject.trim()}"`);
+  }
+  if (draft.body.trim()) {
+    parts.push(`and body "${draft.body.trim()}"`);
+  }
+
+  return parts.length > 0
+    ? `Send an email ${parts.join(" ")}.`
+    : "Help me draft an email.";
+}
 
 interface AssistantPanelProps {
   messages: AssistantChatMessage[];
@@ -60,6 +86,9 @@ export function AssistantPanel({
 }: AssistantPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDebugOpen, setIsDebugOpen] = useState(false);
+  const [isComposeStarterOpen, setIsComposeStarterOpen] = useState(false);
+  const [composeStarterDraft, setComposeStarterDraft] =
+    useState<ComposeDraft>(emptyComposeDraft);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fabRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -68,6 +97,27 @@ export function AssistantPanel({
     requestAnimationFrame(() => {
       inputRef.current?.focus();
     });
+  };
+
+  const handleSuggestionClick = (suggestion: (typeof SUGGESTIONS)[number]) => {
+    if ("startsCompose" in suggestion && suggestion.startsCompose) {
+      setIsComposeStarterOpen(true);
+      return;
+    }
+
+    onSuggestionSelect(suggestion.value);
+    focusInput();
+  };
+
+  const handleComposeStarterSubmit = () => {
+    onSuggestionSelect(buildComposeStarterInstruction(composeStarterDraft));
+    setIsComposeStarterOpen(false);
+    setComposeStarterDraft(emptyComposeDraft);
+  };
+
+  const handleComposeStarterCancel = () => {
+    setIsComposeStarterOpen(false);
+    setComposeStarterDraft(emptyComposeDraft);
   };
 
   useEffect(() => {
@@ -172,21 +222,47 @@ export function AssistantPanel({
                 <p className="text-sm font-medium text-foreground">
                   {ASSISTANT_COPY.panel.emptyHeading}
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  {SUGGESTION_PROMPTS.map((prompt) => (
-                    <button
-                      key={prompt}
-                      type="button"
-                      className="rounded-full border border-border/60 bg-muted/30 px-3 py-1.5 text-xs text-foreground/90 transition-colors hover:bg-muted/60"
-                      onClick={() => {
-                        onSuggestionSelect(prompt);
-                        focusInput();
-                      }}
-                    >
-                      {prompt}
-                    </button>
-                  ))}
-                </div>
+
+                {isComposeStarterOpen ? (
+                  <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3">
+                    <ComposeDraftForm
+                      draft={composeStarterDraft}
+                      onDraftChange={setComposeStarterDraft}
+                      fieldIdPrefix="assistant-compose-starter"
+                    />
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleComposeStarterCancel}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={!composeStarterDraft.to.trim()}
+                        onClick={handleComposeStarterSubmit}
+                      >
+                        Draft Email
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {SUGGESTIONS.map((suggestion) => (
+                      <button
+                        key={suggestion.title}
+                        type="button"
+                        className="rounded-full border border-border/60 bg-muted/30 px-3 py-1.5 text-xs text-foreground/90 transition-colors hover:bg-muted/60"
+                        onClick={() => handleSuggestionClick(suggestion)}
+                      >
+                        {suggestion.title}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             ) : null}
 

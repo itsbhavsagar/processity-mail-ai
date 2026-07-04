@@ -132,6 +132,7 @@ export const assistantContextSchema = z.object({
   hasActiveDraft: z.boolean(),
   activeDraft: activeDraftContextSchema.optional(),
   searchResults: z.array(assistantSearchResultSchema).optional(),
+  todayEpochSeconds: z.number(),
 });
 
 export type AssistantContext = z.infer<typeof assistantContextSchema>;

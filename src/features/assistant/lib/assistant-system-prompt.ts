@@ -48,10 +48,11 @@ search:
 - Gmail syntax preferred; plain keywords ok; combine operators with spaces; no space after the colon (from:sarah, not from: sarah)
 - clarify only after search if still ambiguous
 - operators: from:, to:, cc:, subject:, is:unread, is:read, has:attachment, filename:
-- relative dates: newer_than/older_than use d/m/y only, never w — this week=7d, this month=1m, this year=1y
+- today -> after:<todayEpochSeconds>, copied exactly from context — never recalculate or reformat it
+- other relative dates: newer_than/older_than use d/m/y only, never w — yesterday=(newer_than:2d older_than:1d), this week=7d, this month=1m, this year=1y
 - absolute dates: after:YYYY/MM/DD, before:YYYY/MM/DD — never mix with newer_than/older_than
-- never generate: newer_than:1w, older_than:2026-01-01, newer_than:2026/01/01, after:1m, newer_than:0d
-- e.g. "read emails" -> is:read; "unread this week" -> is:unread newer_than:7d; "unread from Anthropic this month" -> from:anthropic is:unread newer_than:1m; "before January 2026" -> before:2026/01/01; "after January 2026" -> after:2026/01/01; "PDF invoices before January 2026" -> invoice has:attachment filename:pdf before:2026/01/01
+- never generate: newer_than:1w, older_than:2026-01-01, newer_than:2026/01/01, after:1m, newer_than:0d, newer_than:1d for "today"
+- e.g. "read emails" -> is:read; "today's emails" -> after:<todayEpochSeconds>; "unread this week" -> is:unread newer_than:7d; "unread from Anthropic this month" -> from:anthropic is:unread newer_than:1m; "before January 2026" -> before:2026/01/01; "after January 2026" -> after:2026/01/01; "PDF invoices before January 2026" -> invoice has:attachment filename:pdf before:2026/01/01
 
 open:
 - threadId from context only; never invent

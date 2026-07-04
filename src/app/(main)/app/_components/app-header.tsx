@@ -1,18 +1,17 @@
-import { getServerSession } from "next-auth";
 import { FiMail } from "react-icons/fi";
 
-import { UserProfileMenu } from "@/features/auth/components/user-profile-menu";
-import { authConfig } from "@/features/auth/server/auth-config";
+import {
+  UserProfileMenu,
+  type UserProfileMenuUser,
+} from "@/features/auth/components/user-profile-menu";
 import { siteConfig } from "@/config/site";
 
 interface AppHeaderProps {
   search?: React.ReactNode;
+  user?: UserProfileMenuUser;
 }
 
-export async function AppHeader({ search }: AppHeaderProps) {
-  const session = await getServerSession(authConfig);
-  const user = session?.user;
-
+export function AppHeader({ search, user }: AppHeaderProps) {
   return (
     <header className="sticky top-0 z-50 shrink-0 border-b border-border/60 bg-background/90 px-4 py-3 backdrop-blur supports-backdrop-filter:bg-background/75 sm:px-6">
       <div className="flex items-center gap-4">

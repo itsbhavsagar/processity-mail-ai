@@ -4,6 +4,7 @@ import type { MailConversation } from "@/features/mail/types/mail-conversation";
 import type { MailThread } from "@/features/mail/types/mail-thread";
 import type { AssistantDraft } from "@/features/mail/types/compose-draft";
 import { formatMailbox, getMailboxDisplayName } from "@/features/mail/lib/parse-mailbox";
+import { startOfLocalDayEpochSeconds } from "@/features/mail/lib/build-gmail-query";
 import type { MailboxId } from "@/shared/constants";
 
 export const MAX_SEARCH_RESULTS = 5;
@@ -24,6 +25,15 @@ export function toSearchResults(threads: MailThread[]): AssistantSearchResult[] 
   }));
 }
 
+function todayIsoDate(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
 export function buildAssistantContext(options: {
   mail: AssistantMailContext;
   hasActiveDraft: boolean;
@@ -33,6 +43,7 @@ export function buildAssistantContext(options: {
   const latestMessage = options.mail.conversation?.messages.at(-1);
 
   const context: AssistantContext = {
+    todayEpochSeconds: startOfLocalDayEpochSeconds(todayIsoDate()),
     currentMailbox: options.mail.mailbox,
     hasActiveDraft: options.hasActiveDraft,
   };

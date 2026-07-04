@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import {
   createContext,
   useCallback,
@@ -10,27 +11,11 @@ import {
   useTransition,
   type ReactNode,
 } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { AssistantPanel } from "@/features/assistant/components/assistant-panel";
 import { ASSISTANT_COPY } from "@/features/assistant/constants";
 import { executeAssistantActions } from "@/features/assistant/executor/execute-assistant-action";
-import { trimAssistantMessagesForApi } from "@/features/assistant/lib/trim-assistant-request";
-import {
-  buildAssistantCacheKey,
-  getCachedAssistantResponse,
-  setCachedAssistantResponse,
-} from "@/features/assistant/lib/assistant-response-cache";
-import {
-  matchLocalIntent,
-  type LocalIntentResult,
-} from "@/features/assistant/lib/local-intent-router";
-import {
-  buildAssistantContext,
-  toSearchResults,
-  type AssistantMailContext,
-} from "@/features/assistant/lib/build-assistant-context";
 import {
   createTextMessage,
   findActiveDraftMessage,
@@ -40,14 +25,24 @@ import {
   toApiMessageContent,
 } from "@/features/assistant/lib/assistant-message-utils";
 import {
+  buildAssistantCacheKey,
+  getCachedAssistantResponse,
+  setCachedAssistantResponse,
+} from "@/features/assistant/lib/assistant-response-cache";
+import {
+  buildAssistantContext,
+  toSearchResults,
+  type AssistantMailContext,
+} from "@/features/assistant/lib/build-assistant-context";
+import {
   runDraftTypingAnimation,
   typeAssistantMessage,
 } from "@/features/assistant/lib/compose-typing-animation";
-import type {
-  AssistantChatMessage,
-  AssistantComposeDraftMessage,
-  AssistantComposeDraftStatus,
-} from "@/features/assistant/types/assistant-message";
+import {
+  matchLocalIntent,
+  type LocalIntentResult,
+} from "@/features/assistant/lib/local-intent-router";
+import { trimAssistantMessagesForApi } from "@/features/assistant/lib/trim-assistant-request";
 import {
   AssistantClientError,
   requestAssistantResponse,
@@ -57,23 +52,28 @@ import type {
   ComposeEmailPayload,
   ReplyEmailPayload,
 } from "@/features/assistant/types/assistant-action";
+import type {
+  AssistantChatMessage,
+  AssistantComposeDraftMessage,
+  AssistantComposeDraftStatus,
+} from "@/features/assistant/types/assistant-message";
+import { searchMailThreads } from "@/features/mail/actions/search-mail-threads";
+import { sendEmail } from "@/features/mail/actions/send-email";
+import { sendReplyEmail } from "@/features/mail/actions/send-reply-email";
 import { buildReplyDraftFromMailContext } from "@/features/mail/lib/build-reply-draft";
-import { buildMailboxUrl } from "@/features/mail/lib/mailbox-url";
 import {
   assistantDraftToFormData,
   getPrimaryRecipientEmail,
   getReplyRecipientEmail,
 } from "@/features/mail/lib/compose-send";
-import { searchMailThreads } from "@/features/mail/actions/search-mail-threads";
-import { sendEmail } from "@/features/mail/actions/send-email";
-import { sendReplyEmail } from "@/features/mail/actions/send-reply-email";
-import type { MailThread } from "@/features/mail/types/mail-thread";
+import { buildMailboxUrl } from "@/features/mail/lib/mailbox-url";
 import {
   emptyComposeDraft,
   emptyReplyDraft,
   isReplyDraft,
   type AssistantDraft,
 } from "@/features/mail/types/compose-draft";
+import type { MailThread } from "@/features/mail/types/mail-thread";
 const DEV_COMPOSE_RESPONSE: AssistantResponse = {
   thought: "Drafting a sample email.",
   requiresConfirmation: false,
@@ -222,10 +222,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   );
 
   const updateComposeMessage = useCallback(
-    (
-      messageId: string,
-      patch: Partial<AssistantComposeDraftMessage>,
-    ) => {
+    (messageId: string, patch: Partial<AssistantComposeDraftMessage>) => {
       setAssistantMessages((current) =>
         current.map((message) =>
           message.id === messageId && message.kind === "compose_draft"
@@ -357,15 +354,18 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     [applyLiveDraft, createAnimationSchedule, updateComposeMessage],
   );
 
-  const updateComposeDraft = useCallback((draft: AssistantDraft) => {
-    composeDraftRef.current = draft;
-    setComposeDraft(draft);
+  const updateComposeDraft = useCallback(
+    (draft: AssistantDraft) => {
+      composeDraftRef.current = draft;
+      setComposeDraft(draft);
 
-    const messageId = activeComposeMessageIdRef.current;
-    if (messageId) {
-      updateComposeMessage(messageId, { draft });
-    }
-  }, [updateComposeMessage]);
+      const messageId = activeComposeMessageIdRef.current;
+      if (messageId) {
+        updateComposeMessage(messageId, { draft });
+      }
+    },
+    [updateComposeMessage],
+  );
 
   const openManualCompose = useCallback(() => {
     clearFillAnimation();
@@ -378,10 +378,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   }, [clearActiveComposeMessage, clearFillAnimation, updateComposeDraft]);
 
   const showAssistantComposeDraft = useCallback(
-    (
-      payload: ComposeEmailPayload,
-      updateExisting = false,
-    ) => {
+    (payload: ComposeEmailPayload, updateExisting = false) => {
       const targetDraft: AssistantDraft = {
         kind: "compose",
         to: payload.to,
@@ -438,10 +435,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   );
 
   const showAssistantReplyDraft = useCallback(
-    (
-      payload: ReplyEmailPayload,
-      updateExisting = false,
-    ) => {
+    (payload: ReplyEmailPayload, updateExisting = false) => {
       const mail = mailContextRef.current;
       const targetDraft = buildReplyDraftFromMailContext(
         mail,
@@ -863,16 +857,19 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       typeAssistantText,
     ],
   );
+  
+  const submitPrompt = useCallback(
+    async (promptOverride?: string) => {
+      const trimmed = (promptOverride ?? assistantInput).trim();
+      if (!trimmed) {
+        return;
+      }
 
-  const submitAssistantPrompt = useCallback(async () => {
-    const trimmed = assistantInput.trim();
-    if (!trimmed) {
-      return;
-    }
-
-    setAssistantInput("");
-    await runAssistantPrompt(trimmed);
-  }, [assistantInput, runAssistantPrompt]);
+      setAssistantInput("");
+      await runAssistantPrompt(trimmed);
+    },
+    [assistantInput, runAssistantPrompt],
+  );
 
   const handleDevCompose = useCallback(() => {
     setAssistantBusy(true);
@@ -932,8 +929,8 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         isLoading={assistantLoading}
         isBusy={assistantBusy}
         typingAssistantText={typingAssistantText}
-        onSubmitPrompt={submitAssistantPrompt}
-        onSuggestionSelect={setAssistantInput}
+        onSubmitPrompt={() => submitPrompt()}
+        onSuggestionSelect={submitPrompt}
         activeComposeMessageId={activeComposeMessageId}
         composeDraft={composeDraft}
         onComposeDraftChange={updateComposeDraft}

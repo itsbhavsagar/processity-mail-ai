@@ -18,6 +18,7 @@ export function serializeAssistantContextForPrompt(
   const lines: string[] = [`mailbox=${q(context.currentMailbox)}`];
 
   lines.push(`hasActiveDraft=${context.hasActiveDraft ? 1 : 0}`);
+  lines.push(`todayEpochSeconds=${context.todayEpochSeconds}`);
 
   if (context.currentConversation) {
     const { threadId, sender, subject, to, cc, sentAt, body } =

@@ -64,6 +64,12 @@ export function MailAppWorkspace({
   );
   const markedReadThreadsRef = useRef(new Set<string>());
   const [isFocusMode, setIsFocusMode] = useState(false);
+  const [previousMailbox, setPreviousMailbox] = useState(mailbox);
+
+  if (mailbox !== previousMailbox) {
+    setPreviousMailbox(mailbox);
+    setIsFocusMode(false);
+  }
 
   const canUseFocusMode = Boolean(
     conversationId && conversation && !conversationError,
@@ -154,7 +160,9 @@ export function MailAppWorkspace({
         isFocusMode={isFocusMode}
         header={header}
         activeMailbox={mailbox}
-        sidebarActions={<ComposeButton onClick={openManualCompose} />}
+        sidebarActions={(isCollapsed) => (
+          <ComposeButton onClick={openManualCompose} collapsed={isCollapsed} />
+        )}
         workspace={
           <InboxWorkspaceClient
             mailbox={mailbox}

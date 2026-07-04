@@ -32,16 +32,29 @@ export class GmailApiError extends Error {
   }
 }
 
-async function gmailFetch<T>(path: string, accessToken: string): Promise<T> {
+async function gmailFetch<T>(
+  path: string,
+  accessToken: string,
+  init?: { method?: string; body?: unknown },
+): Promise<T> {
   const response = await fetch(`${GMAIL_API_BASE}${path}`, {
+    method: init?.method ?? "GET",
     headers: {
       Authorization: `Bearer ${accessToken}`,
+      ...(init?.body !== undefined
+        ? { "Content-Type": "application/json" }
+        : {}),
     },
+    body: init?.body !== undefined ? JSON.stringify(init.body) : undefined,
     cache: "no-store",
   });
 
   if (!response.ok) {
     throw new GmailApiError(response.status);
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
   }
 
   return response.json() as Promise<T>;
@@ -159,6 +172,82 @@ export async function getConversation(
   );
 
   return normalizeConversation(thread);
+}
+
+interface GmailProfileResponse {
+  emailAddress: string;
+  historyId: string;
+}
+
+export async function getProfile(
+  accessToken: string,
+): Promise<{ emailAddress: string; historyId: string }> {
+  const data = await gmailFetch<GmailProfileResponse>("/profile", accessToken);
+  return { emailAddress: data.emailAddress, historyId: data.historyId };
+}
+
+interface GmailWatchResponse {
+  historyId: string;
+  expiration: string;
+}
+
+export async function watchMailbox(
+  accessToken: string,
+  topicName: string,
+  labelIds: string[] = ["INBOX"],
+): Promise<{ historyId: string; expiration: Date }> {
+  const data = await gmailFetch<GmailWatchResponse>("/watch", accessToken, {
+    method: "POST",
+    body: { topicName, labelIds },
+  });
+
+  return {
+    historyId: data.historyId,
+    expiration: new Date(Number(data.expiration)),
+  };
+}
+
+export async function stopWatch(accessToken: string): Promise<void> {
+  await gmailFetch<void>("/stop", accessToken, { method: "POST" });
+}
+
+interface GmailHistoryResponse {
+  history?: Array<{
+    messagesAdded?: Array<{
+      message: { id: string; threadId: string; labelIds?: string[] };
+    }>;
+  }>;
+  historyId: string;
+}
+
+export interface GmailHistoryResult {
+  historyId: string;
+  addedMessages: Array<{ id: string; threadId: string }>;
+}
+
+export async function listHistory(
+  accessToken: string,
+  startHistoryId: string,
+): Promise<GmailHistoryResult> {
+  const params = new URLSearchParams({
+    startHistoryId,
+    historyTypes: "messageAdded",
+    labelId: "INBOX",
+  });
+
+  const data = await gmailFetch<GmailHistoryResponse>(
+    `/history?${params.toString()}`,
+    accessToken,
+  );
+
+  const addedMessages = (data.history ?? [])
+    .flatMap((item) => item.messagesAdded ?? [])
+    .map((entry) => ({
+      id: entry.message.id,
+      threadId: entry.message.threadId,
+    }));
+
+  return { historyId: data.historyId, addedMessages };
 }
 
 export async function markThreadAsRead(

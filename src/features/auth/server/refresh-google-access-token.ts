@@ -37,3 +37,15 @@ export async function refreshGoogleAccessToken(token: JWT): Promise<JWT> {
     error: undefined,
   };
 }
+
+export async function getAccessTokenFromRefreshToken(
+  refreshToken: string,
+): Promise<string> {
+  const result = await refreshGoogleAccessToken({ refreshToken } as JWT);
+
+  if (result.error || !result.accessToken) {
+    throw new Error("Failed to obtain an access token from the refresh token.");
+  }
+
+  return result.accessToken;
+}

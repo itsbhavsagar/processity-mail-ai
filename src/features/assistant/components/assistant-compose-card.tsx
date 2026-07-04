@@ -243,7 +243,7 @@ export function AssistantComposeCard({
 
   if (status === "preparing") {
     return (
-      <Card className="mt-2 gap-0 py-0 shadow-none">
+      <Card className="mt-2 gap-0 py-0 shadow-none animate-in fade-in duration-300">
         <CardContent className="flex items-center gap-2 px-3 py-4 text-sm text-muted-foreground">
           <FiLoader className="size-4 shrink-0 animate-spin" aria-hidden />
           {isReply
@@ -267,7 +267,7 @@ export function AssistantComposeCard({
   return (
     <Card
       className={cn(
-        "mt-2 gap-0 py-0 shadow-none transition-all duration-300",
+        "mt-2 gap-0 py-0 shadow-none transition-all duration-300 animate-in fade-in",
         isTyping && "opacity-95",
         isSending && "border-primary/20 bg-primary/5",
       )}

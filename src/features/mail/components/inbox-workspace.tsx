@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { getServerSession } from "next-auth";
 
 import type { UserProfileMenuUser } from "@/features/auth/components/user-profile-menu";
@@ -9,7 +10,11 @@ import {
 } from "@/features/gmail/services/gmail-service";
 import type { MailConversation } from "@/features/mail/types/mail-conversation";
 import type { MailThread } from "@/features/mail/types/mail-thread";
-import { getMailboxById, type MailboxId } from "@/shared/constants";
+import {
+  getMailboxById,
+  SIDEBAR_COLLAPSED_COOKIE,
+  type MailboxId,
+} from "@/shared/constants";
 import { Card, CardContent } from "@/shared/ui";
 
 import { MailAppWorkspace } from "@/features/mail/components/mail-app-workspace";
@@ -68,6 +73,9 @@ export async function InboxWorkspace({
   conversationId,
 }: InboxWorkspaceProps) {
   const session = await getServerSession(authConfig);
+  const cookieStore = await cookies();
+  const initialSidebarCollapsed =
+    cookieStore.get(SIDEBAR_COLLAPSED_COOKIE)?.value === "true";
 
   if (!session?.accessToken || session.error === "RefreshAccessTokenError") {
     return <GoogleSessionExpiredState user={session?.user} />;
@@ -112,6 +120,7 @@ export async function InboxWorkspace({
   return (
     <MailAppWorkspace
       header={<AppHeader user={session.user} search={<MailSearchFilters />} />}
+      initialSidebarCollapsed={initialSidebarCollapsed}
       mailbox={mailbox}
       threads={threads}
       conversation={conversation}

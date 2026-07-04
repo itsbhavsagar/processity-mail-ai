@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import { signOut } from "next-auth/react";
+import { useState } from "react";
 import { FiChevronDown, FiLogOut } from "react-icons/fi";
 
+import { cn } from "@/shared/lib/utils";
 import {
   Avatar,
   AvatarFallback,
@@ -16,7 +17,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/ui";
-import { cn } from "@/shared/lib/utils";
 
 export interface UserProfileMenuUser {
   name?: string | null;
@@ -63,11 +63,11 @@ export function UserProfileMenu({ user }: UserProfileMenuProps) {
             <AvatarFallback>{getInitials(user)}</AvatarFallback>
           </Avatar>
           <span className="hidden min-w-0 flex-col items-start text-left md:flex">
-            <span className="max-w-[160px] truncate text-sm font-medium leading-none">
+            <span className="max-w-40 truncate text-sm font-medium leading-none">
               {displayName}
             </span>
             {email ? (
-              <span className="max-w-[160px] truncate text-xs text-muted-foreground">
+              <span className="max-w-40 truncate text-xs text-muted-foreground">
                 {email}
               </span>
             ) : null}

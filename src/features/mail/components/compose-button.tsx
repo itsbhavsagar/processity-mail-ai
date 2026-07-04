@@ -3,6 +3,7 @@
 import { FiEdit } from "react-icons/fi";
 
 import { Button, Tooltip, TooltipContent, TooltipTrigger } from "@/shared/ui";
+import { cn } from "@/shared/lib/utils";
 
 interface ComposeButtonProps {
   onClick: () => void;
@@ -15,11 +16,15 @@ export function ComposeButton({
   disabled = false,
   collapsed = false,
 }: ComposeButtonProps) {
+  const composeButtonClassName =
+    "rounded-full border border-primary/20 bg-primary/10 text-primary shadow-sm hover:bg-primary/15";
+
   if (!collapsed) {
     return (
       <Button
         type="button"
-        className="w-full justify-start gap-2"
+        variant="ghost"
+        className={cn("w-full justify-start gap-2", composeButtonClassName)}
         onClick={onClick}
         disabled={disabled}
       >
@@ -34,8 +39,9 @@ export function ComposeButton({
       <TooltipTrigger asChild>
         <Button
           type="button"
+          variant="ghost"
           size="icon"
-          className="mx-auto flex"
+          className={cn("mx-auto flex", composeButtonClassName)}
           onClick={onClick}
           disabled={disabled}
           aria-label="Compose"

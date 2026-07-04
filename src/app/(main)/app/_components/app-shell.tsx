@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { AppSidebar } from "./app-sidebar";
-import type { MailboxId } from "@/shared/constants";
+import { SIDEBAR_COLLAPSED_COOKIE, type MailboxId } from "@/shared/constants";
 import { cn } from "@/shared/lib/utils";
 
 interface AppShellProps {
@@ -12,6 +12,7 @@ interface AppShellProps {
   header?: React.ReactNode;
   activeMailbox: MailboxId;
   isFocusMode?: boolean;
+  initialSidebarCollapsed?: boolean;
 }
 
 export function AppShell({
@@ -20,8 +21,19 @@ export function AppShell({
   header,
   activeMailbox,
   isFocusMode = false,
+  initialSidebarCollapsed = false,
 }: AppShellProps) {
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(
+    initialSidebarCollapsed,
+  );
+
+  const toggleSidebarCollapsed = () => {
+    setIsSidebarCollapsed((current) => {
+      const next = !current;
+      document.cookie = `${SIDEBAR_COLLAPSED_COOKIE}=${next}; path=/; max-age=31536000`;
+      return next;
+    });
+  };
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
@@ -34,9 +46,7 @@ export function AppShell({
               activeMailbox={activeMailbox}
               actions={sidebarActions?.(isSidebarCollapsed)}
               isCollapsed={isSidebarCollapsed}
-              onToggleCollapsed={() =>
-                setIsSidebarCollapsed((current) => !current)
-              }
+              onToggleCollapsed={toggleSidebarCollapsed}
             />
           </div>
         ) : null}

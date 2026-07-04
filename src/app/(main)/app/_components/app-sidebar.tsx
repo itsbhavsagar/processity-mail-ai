@@ -97,6 +97,7 @@ export function AppSidebar({
                   className={cn(
                     "relative h-9 w-full gap-3 overflow-hidden hover:bg-transparent",
                     isCollapsed ? "justify-center px-0" : "justify-start",
+                    isActive ? "text-primary" : "text-foreground/80",
                   )}
                   aria-current={isActive ? "page" : undefined}
                   aria-label={isCollapsed ? mailbox.label : undefined}
@@ -105,7 +106,7 @@ export function AppSidebar({
                   {isActive ? (
                     <motion.span
                       layoutId="sidebar-active-mailbox"
-                      className="absolute inset-0 rounded-md bg-secondary"
+                      className="absolute inset-0 rounded-md border border-primary/20 bg-primary/10"
                       transition={{ duration: 0.2, ease: "easeOut" }}
                     />
                   ) : null}

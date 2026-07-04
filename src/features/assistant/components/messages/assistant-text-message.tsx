@@ -1,3 +1,5 @@
+import { motion } from "framer-motion";
+
 import type { AssistantTextMessage } from "@/features/assistant/types/assistant-message";
 import { cn } from "@/shared/lib/utils";
 
@@ -10,7 +12,10 @@ export function AssistantTextMessageView({ message }: AssistantTextMessageProps)
 
   return (
     <div className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}>
-      <div
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
         className={cn(
           "inline-block w-fit max-w-[75%] text-sm leading-relaxed wrap-break-word",
           isUser
@@ -19,7 +24,7 @@ export function AssistantTextMessageView({ message }: AssistantTextMessageProps)
         )}
       >
         {message.content}
-      </div>
+      </motion.div>
     </div>
   );
 }

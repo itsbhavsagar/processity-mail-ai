@@ -1,11 +1,24 @@
+import { cookies } from "next/headers";
+import { getServerSession } from "next-auth";
+
+import { authConfig } from "@/features/auth/server/auth-config";
+import { SIDEBAR_COLLAPSED_COOKIE } from "@/shared/constants";
 import { Card, CardContent, Skeleton } from "@/shared/ui";
 
+import { AppHeader } from "./_components/app-header";
 import { AppShell } from "./_components/app-shell";
 
-export default function Loading() {
+export default async function Loading() {
+  const session = await getServerSession(authConfig);
+  const cookieStore = await cookies();
+  const initialSidebarCollapsed =
+    cookieStore.get(SIDEBAR_COLLAPSED_COOKIE)?.value === "true";
+
   return (
     <AppShell
       activeMailbox="inbox"
+      header={<AppHeader user={session?.user} />}
+      initialSidebarCollapsed={initialSidebarCollapsed}
       workspace={
         <Card className="flex h-full min-h-0 flex-col border-border/60 bg-card/80 shadow-sm">
           <CardContent className="space-y-3 px-4 py-4">

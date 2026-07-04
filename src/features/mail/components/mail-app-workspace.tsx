@@ -26,6 +26,7 @@ interface MailAppWorkspaceProps {
   mailbox: MailboxId;
   currentUserEmail?: string;
   header: React.ReactNode;
+  initialSidebarCollapsed: boolean;
 }
 
 function isTypingTarget(target: EventTarget | null): boolean {
@@ -44,6 +45,7 @@ export function MailAppWorkspace({
   mailbox,
   currentUserEmail,
   header,
+  initialSidebarCollapsed,
 }: MailAppWorkspaceProps) {
   const {
     activeSearchQuery,
@@ -160,6 +162,7 @@ export function MailAppWorkspace({
         isFocusMode={isFocusMode}
         header={header}
         activeMailbox={mailbox}
+        initialSidebarCollapsed={initialSidebarCollapsed}
         sidebarActions={(isCollapsed) => (
           <ComposeButton onClick={openManualCompose} collapsed={isCollapsed} />
         )}

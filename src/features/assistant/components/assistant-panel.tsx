@@ -1,9 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import {
   FiArrowRight,
   FiChevronDown,
+  FiClock,
+  FiEdit3,
+  FiMail,
   FiMessageCircle,
   FiMic,
   FiX,
@@ -27,10 +31,11 @@ const SUGGESTIONS = [
   {
     title: "Draft an email",
     value: "Help me draft an email.",
+    icon: FiEdit3,
     startsCompose: true,
   },
-  { title: "Show unread emails", value: "Show unread emails." },
-  { title: "Find today's emails", value: "Show today's emails." },
+  { title: "Show unread emails", value: "Show unread emails.", icon: FiMail },
+  { title: "Find today's emails", value: "Show today's emails.", icon: FiClock },
 ] as const;
 
 function buildComposeStarterInstruction(draft: ComposeDraft): string {
@@ -191,10 +196,18 @@ export function AssistantPanel({
               id="commandmail-ai-title"
               className="flex items-center gap-2 truncate text-sm font-semibold tracking-tight"
             >
-              <FiMessageCircle
-                className="size-4 shrink-0 text-primary"
-                aria-hidden
-              />
+              <span className="relative flex size-4 shrink-0 items-center justify-center">
+                <FiMessageCircle className="size-4 text-primary" aria-hidden />
+                <span
+                  className={cn(
+                    "absolute -right-0.5 -top-0.5 size-1.5 rounded-full border border-background",
+                    isLoading || isBusy
+                      ? "animate-pulse bg-amber-500"
+                      : "bg-emerald-500",
+                  )}
+                  aria-hidden
+                />
+              </span>
               <span className="truncate">{ASSISTANT_COPY.panel.title}</span>
             </h2>
             {isLoading ? (
@@ -252,14 +265,17 @@ export function AssistantPanel({
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {SUGGESTIONS.map((suggestion) => (
-                      <button
+                      <motion.button
                         key={suggestion.title}
                         type="button"
-                        className="rounded-full border border-border/60 bg-muted/30 px-3 py-1.5 text-xs text-foreground/90 transition-colors hover:bg-muted/60"
+                        whileHover={{ y: -1 }}
+                        transition={{ duration: 0.15 }}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/30 px-3 py-1.5 text-xs text-foreground/90 transition-colors hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
                         onClick={() => handleSuggestionClick(suggestion)}
                       >
+                        <suggestion.icon className="size-3.5" aria-hidden />
                         {suggestion.title}
-                      </button>
+                      </motion.button>
                     ))}
                   </div>
                 )}
@@ -394,7 +410,7 @@ export function AssistantPanel({
         aria-expanded={isOpen}
         aria-controls="commandmail-ai-panel"
         className={cn(
-          "pointer-events-auto h-11 gap-2 rounded-full px-4 shadow-lg",
+          "pointer-events-auto h-11 gap-2 rounded-full px-4 shadow-lg transition-transform duration-150 ease-out hover:scale-105 active:scale-95",
           isOpen && "ring-2 ring-primary/20",
         )}
       >

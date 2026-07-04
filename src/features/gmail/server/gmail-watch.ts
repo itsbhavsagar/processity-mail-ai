@@ -36,14 +36,24 @@ export async function registerWatch(
 
 export async function renewExpiringWatches(): Promise<{
   renewed: number;
+  skipped: number;
   failed: number;
 }> {
   const rows = await listExpiring(new Date(Date.now() + RENEW_WINDOW_MS));
 
   let renewed = 0;
+  let skipped = 0;
   let failed = 0;
 
   for (const row of rows) {
+    if (!row.refreshToken) {
+      skipped += 1;
+      console.warn(
+        `[gmail-watch] skipping ${row.email}: no refresh token on file.`,
+      );
+      continue;
+    }
+
     try {
       const accessToken = await getAccessTokenFromRefreshToken(
         row.refreshToken,
@@ -56,5 +66,5 @@ export async function renewExpiringWatches(): Promise<{
     }
   }
 
-  return { renewed, failed };
+  return { renewed, skipped, failed };
 }

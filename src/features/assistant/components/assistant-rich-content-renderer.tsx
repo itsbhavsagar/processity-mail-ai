@@ -1,5 +1,7 @@
 "use client";
 
+import { AssistantEmailCard } from "@/features/assistant/components/rich/assistant-email-card";
+import { AssistantEmailList } from "@/features/assistant/components/rich/assistant-email-list";
 import type { AssistantRichContent } from "@/features/assistant/types/assistant-rich-content";
 
 interface AssistantRichContentRendererProps {
@@ -8,14 +10,17 @@ interface AssistantRichContentRendererProps {
 
 /**
  * Single dispatch point for structured assistant content. Each content type
- * gets its own case + card component in follow-up commits (email, filter,
- * confirmation, and later non-card content such as charts or tables).
+ * gets its own case + card component (filter and confirmation land in later
+ * commits, alongside future non-card content such as charts or tables).
  */
 export function AssistantRichContentRenderer({
   content,
 }: AssistantRichContentRendererProps) {
   switch (content.type) {
-    // case renderers added incrementally in later commits
+    case "email":
+      return <AssistantEmailCard content={content} />;
+    case "email_list":
+      return <AssistantEmailList content={content} />;
     default:
       return null;
   }

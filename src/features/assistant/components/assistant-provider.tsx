@@ -17,6 +17,7 @@ import { AssistantPanel } from "@/features/assistant/components/assistant-panel"
 import { ASSISTANT_COPY } from "@/features/assistant/constants";
 import { executeAssistantActions } from "@/features/assistant/executor/execute-assistant-action";
 import {
+  createRichMessage,
   createTextMessage,
   findActiveDraftMessage,
   resolveActiveDraft,
@@ -47,6 +48,7 @@ import type {
   AssistantResponse,
   ComposeEmailPayload,
   ReplyEmailPayload,
+  SearchEmailsPayload,
 } from "@/features/assistant/types/assistant-action";
 import type {
   AssistantChatMessage,
@@ -83,7 +85,10 @@ type AssistantContextValue = {
   searchThreads: MailThread[];
   isSearchLoading: boolean;
   clearSearch: () => void;
-  executeSearch: (query: string, displayLabel?: string) => Promise<void>;
+  executeSearch: (
+    query: string,
+    displayLabel?: string,
+  ) => Promise<MailThread[] | null>;
   composeDraft: AssistantDraft;
   isComposeOpen: boolean;
   openManualCompose: () => void;
@@ -261,7 +266,10 @@ export function AssistantProvider({
   }, []);
 
   const executeSearch = useCallback(
-    async (query: string, displayLabel?: string) => {
+    async (
+      query: string,
+      displayLabel?: string,
+    ): Promise<MailThread[] | null> => {
       setActiveSearchQuery(query);
       setSearchDisplayLabel(displayLabel ?? null);
       setIsSearchLoading(true);
@@ -272,7 +280,7 @@ export function AssistantProvider({
       if (result.success) {
         setSearchThreads(result.threads);
         setIsSearchLoading(false);
-        return;
+        return result.threads;
       }
 
       setActiveSearchQuery(null);
@@ -284,12 +292,31 @@ export function AssistantProvider({
         toast.error("Your Gmail connection expired.", {
           description: "Please sign in again.",
         });
-        return;
+        return null;
       }
 
       toast.error(result.message ?? "Couldn't search your mailbox");
+      return null;
     },
     [],
+  );
+
+  const applySearchAndShowResults = useCallback(
+    async ({ query }: SearchEmailsPayload) => {
+      const threads = await executeSearch(query);
+      if (threads) {
+        setAssistantMessages((current) => [
+          ...current,
+          createRichMessage({
+            type: "email_list",
+            query,
+            threads,
+            mailbox: mailContextRef.current.mailbox,
+          }),
+        ]);
+      }
+    },
+    [executeSearch],
   );
 
   const openEmail = useCallback(
@@ -616,7 +643,7 @@ export function AssistantProvider({
           showAssistantReplyDraft: (payload) => {
             showAssistantReplyDraft(payload, isDraftRevision);
           },
-          applySearchEmails: (payload) => executeSearch(payload.query),
+          applySearchEmails: applySearchAndShowResults,
           openEmail: (payload) => {
             openEmail(payload.threadId);
           },
@@ -644,7 +671,7 @@ export function AssistantProvider({
           showAssistantReplyDraft: (payload) => {
             showAssistantReplyDraft(payload, isDraftRevision);
           },
-          applySearchEmails: (payload) => executeSearch(payload.query),
+          applySearchEmails: applySearchAndShowResults,
           openEmail: (payload) => {
             openEmail(payload.threadId);
           },
@@ -664,7 +691,7 @@ export function AssistantProvider({
       });
     },
     [
-      executeSearch,
+      applySearchAndShowResults,
       canSendActiveDraft,
       markActiveDraftSending,
       openEmail,

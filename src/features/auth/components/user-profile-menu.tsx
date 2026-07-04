@@ -58,7 +58,11 @@ export function UserProfileMenu({ user }: UserProfileMenuProps) {
         >
           <Avatar className="size-8">
             {user.image ? (
-              <AvatarImage src={user.image} alt={displayName} />
+              <AvatarImage
+                src={user.image}
+                alt={displayName}
+                referrerPolicy="no-referrer"
+              />
             ) : null}
             <AvatarFallback>{getInitials(user)}</AvatarFallback>
           </Avatar>
@@ -83,7 +87,7 @@ export function UserProfileMenu({ user }: UserProfileMenuProps) {
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel className="font-normal">
+        <DropdownMenuLabel className="font-normal md:hidden">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">{displayName}</p>
             {email ? (
@@ -94,7 +98,7 @@ export function UserProfileMenu({ user }: UserProfileMenuProps) {
           </div>
         </DropdownMenuLabel>
 
-        <DropdownMenuSeparator />
+        <DropdownMenuSeparator className="md:hidden" />
 
         <DropdownMenuItem onSelect={handleSignOut} className="gap-2">
           <FiLogOut className="size-4" aria-hidden />

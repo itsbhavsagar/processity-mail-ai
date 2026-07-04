@@ -804,7 +804,7 @@ export function AssistantProvider({
         <div className="flex min-h-0 flex-1">
           <div className="flex min-w-0 flex-1 flex-col">{children}</div>
 
-          <aside className="hidden w-[360px] shrink-0 border-l border-border/60 bg-background md:flex md:flex-col">
+          <aside className="hidden w-90 shrink-0 border-l border-border/60 bg-background md:flex md:flex-col">
             <AssistantPanel
               messages={assistantMessages}
               input={assistantInput}

@@ -1,0 +1,21 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model GmailSync {
+  email           String    @id
+  googleSub       String    @unique
+  refreshTokenEnc String
+  historyId       String?
+  watchExpiration DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("gmail_sync")
+}

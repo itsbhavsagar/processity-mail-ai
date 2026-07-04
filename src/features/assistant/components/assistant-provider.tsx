@@ -102,10 +102,11 @@ const defaultMailContext: AssistantMailContext = {
 
 type AssistantContextValue = {
   activeSearchQuery: string | null;
+  searchDisplayLabel: string | null;
   searchThreads: MailThread[];
   isSearchLoading: boolean;
   clearSearch: () => void;
-  executeSearch: (query: string) => Promise<void>;
+  executeSearch: (query: string, displayLabel?: string) => Promise<void>;
   composeDraft: AssistantDraft;
   isComposeOpen: boolean;
   openManualCompose: () => void;
@@ -139,6 +140,9 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     null,
   );
   const [activeSearchQuery, setActiveSearchQuery] = useState<string | null>(
+    null,
+  );
+  const [searchDisplayLabel, setSearchDisplayLabel] = useState<string | null>(
     null,
   );
   const [searchThreads, setSearchThreads] = useState<MailThread[]>([]);
@@ -271,36 +275,42 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
 
   const clearSearch = useCallback(() => {
     setActiveSearchQuery(null);
+    setSearchDisplayLabel(null);
     setSearchThreads([]);
     setIsSearchLoading(false);
   }, []);
 
-  const executeSearch = useCallback(async (query: string) => {
-    setActiveSearchQuery(query);
-    setIsSearchLoading(true);
-    setSearchThreads([]);
+  const executeSearch = useCallback(
+    async (query: string, displayLabel?: string) => {
+      setActiveSearchQuery(query);
+      setSearchDisplayLabel(displayLabel ?? null);
+      setIsSearchLoading(true);
+      setSearchThreads([]);
 
-    const result = await searchMailThreads(query);
+      const result = await searchMailThreads(query);
 
-    if (result.success) {
-      setSearchThreads(result.threads);
+      if (result.success) {
+        setSearchThreads(result.threads);
+        setIsSearchLoading(false);
+        return;
+      }
+
+      setActiveSearchQuery(null);
+      setSearchDisplayLabel(null);
+      setSearchThreads([]);
       setIsSearchLoading(false);
-      return;
-    }
 
-    setActiveSearchQuery(null);
-    setSearchThreads([]);
-    setIsSearchLoading(false);
+      if (result.error === "auth") {
+        toast.error("Your Gmail connection expired.", {
+          description: "Please sign in again.",
+        });
+        return;
+      }
 
-    if (result.error === "auth") {
-      toast.error("Your Gmail connection expired.", {
-        description: "Please sign in again.",
-      });
-      return;
-    }
-
-    toast.error(result.message ?? "Couldn't search your mailbox");
-  }, []);
+      toast.error(result.message ?? "Couldn't search your mailbox");
+    },
+    [],
+  );
 
   const openEmail = useCallback(
     (threadId: string) => {
@@ -898,6 +908,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
 
   const contextValue: AssistantContextValue = {
     activeSearchQuery,
+    searchDisplayLabel,
     searchThreads,
     isSearchLoading,
     clearSearch,

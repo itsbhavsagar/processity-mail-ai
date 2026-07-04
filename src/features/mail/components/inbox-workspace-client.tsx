@@ -23,6 +23,7 @@ interface InboxWorkspaceClientProps {
   currentUserEmail?: string;
   isFocusMode: boolean;
   activeSearchQuery?: string | null;
+  searchDisplayLabel?: string | null;
   isSearchLoading?: boolean;
   onClearSearch?: () => void;
   onToggleFocusMode: () => void;
@@ -38,6 +39,7 @@ export function InboxWorkspaceClient({
   currentUserEmail,
   isFocusMode,
   activeSearchQuery = null,
+  searchDisplayLabel = null,
   isSearchLoading = false,
   onClearSearch,
   onToggleFocusMode,
@@ -107,6 +109,7 @@ export function InboxWorkspaceClient({
           onSelectThread={handleSelectThread}
           isPending={isPending}
           searchQuery={activeSearchQuery}
+          searchDisplayLabel={searchDisplayLabel}
           isSearchLoading={isSearchLoading}
           onClearSearch={onClearSearch}
         />

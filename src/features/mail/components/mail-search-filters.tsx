@@ -7,6 +7,7 @@ import { useAssistant } from "@/features/assistant/components/assistant-provider
 import {
   buildGmailQuery,
   countActiveFilters,
+  describeMailFilters,
   emptyMailFilters,
   type MailFilters,
   type MailReadStatus,
@@ -51,7 +52,7 @@ export function MailSearchFilters() {
       return;
     }
 
-    void executeSearch(query);
+    void executeSearch(query, describeMailFilters(keywordValue, filters));
   };
 
   const handleKeywordKeyDown = (

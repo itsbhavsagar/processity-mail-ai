@@ -47,6 +47,7 @@ export function MailAppWorkspace({
 }: MailAppWorkspaceProps) {
   const {
     activeSearchQuery,
+    searchDisplayLabel,
     searchThreads,
     isSearchLoading,
     clearSearch,
@@ -164,6 +165,7 @@ export function MailAppWorkspace({
             currentUserEmail={currentUserEmail}
             isFocusMode={isFocusMode}
             activeSearchQuery={activeSearchQuery}
+            searchDisplayLabel={searchDisplayLabel}
             isSearchLoading={isSearchLoading}
             onClearSearch={clearSearch}
             onToggleFocusMode={() => setIsFocusMode((current) => !current)}

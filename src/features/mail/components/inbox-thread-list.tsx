@@ -15,6 +15,7 @@ interface InboxThreadListProps {
   onSelectThread?: (threadId: string) => void;
   isPending?: boolean;
   searchQuery?: string | null;
+  searchDisplayLabel?: string | null;
   isSearchLoading?: boolean;
   onClearSearch?: () => void;
 }
@@ -46,11 +47,13 @@ export function InboxThreadList({
   onSelectThread,
   isPending = false,
   searchQuery = null,
+  searchDisplayLabel = null,
   isSearchLoading = false,
   onClearSearch,
 }: InboxThreadListProps) {
   const isSearchActive = Boolean(searchQuery);
   const listTitle = isSearchActive ? "Search results" : mailboxLabel;
+  const searchDisplayText = searchDisplayLabel || searchQuery;
 
   if (isSearchLoading) {
     return (
@@ -61,9 +64,9 @@ export function InboxThreadList({
               <h1 className="text-sm font-semibold tracking-tight">
                 {listTitle}
               </h1>
-              {searchQuery ? (
+              {searchDisplayText ? (
                 <p className="mt-1 truncate text-xs text-muted-foreground">
-                  {searchQuery}
+                  {searchDisplayText}
                 </p>
               ) : null}
             </div>
@@ -118,7 +121,7 @@ export function InboxThreadList({
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
             {isSearchActive
-              ? `Nothing matched "${searchQuery}". Try different keywords or operators.`
+              ? `Nothing matched ${searchDisplayText}. Try different keywords or operators.`
               : "New conversations will appear here."}
           </p>
           {isSearchActive && onClearSearch ? (
@@ -143,9 +146,9 @@ export function InboxThreadList({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-sm font-semibold tracking-tight">{listTitle}</h1>
-            {isSearchActive && searchQuery ? (
+            {isSearchActive && searchDisplayText ? (
               <p className="mt-1 truncate text-xs text-muted-foreground">
-                {searchQuery}
+                {searchDisplayText}
               </p>
             ) : (
               <p className="mt-1 text-xs text-muted-foreground">

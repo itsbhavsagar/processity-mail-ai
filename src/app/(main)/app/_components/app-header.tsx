@@ -1,12 +1,15 @@
 import { getServerSession } from "next-auth";
-import { FiMail, FiSearch } from "react-icons/fi";
+import { FiMail } from "react-icons/fi";
 
 import { UserProfileMenu } from "@/features/auth/components/user-profile-menu";
 import { authConfig } from "@/features/auth/server/auth-config";
 import { siteConfig } from "@/config/site";
-import { Input } from "@/shared/ui";
 
-export async function AppHeader() {
+interface AppHeaderProps {
+  search?: React.ReactNode;
+}
+
+export async function AppHeader({ search }: AppHeaderProps) {
   const session = await getServerSession(authConfig);
   const user = session?.user;
 
@@ -25,17 +28,11 @@ export async function AppHeader() {
           </span>
         </div>
 
-        <div className="relative mx-auto hidden w-full max-w-xl md:block">
-          <FiSearch
-            aria-hidden
-            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            aria-label="Search workspace"
-            placeholder="Search emails..."
-            className="h-9 bg-background pl-9"
-          />
-        </div>
+        {search ? (
+          <div className="mx-auto hidden w-full max-w-xl md:block">
+            {search}
+          </div>
+        ) : null}
 
         {user ? <UserProfileMenu user={user} /> : null}
       </div>

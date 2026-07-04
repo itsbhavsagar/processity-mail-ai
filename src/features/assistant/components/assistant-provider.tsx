@@ -56,7 +56,6 @@ import type {
   AssistantResponse,
   ComposeEmailPayload,
   ReplyEmailPayload,
-  SearchEmailsPayload,
 } from "@/features/assistant/types/assistant-action";
 import { buildReplyDraftFromMailContext } from "@/features/mail/lib/build-reply-draft";
 import { buildMailboxUrl } from "@/features/mail/lib/mailbox-url";
@@ -106,6 +105,7 @@ type AssistantContextValue = {
   searchThreads: MailThread[];
   isSearchLoading: boolean;
   clearSearch: () => void;
+  executeSearch: (query: string) => Promise<void>;
   composeDraft: AssistantDraft;
   isComposeOpen: boolean;
   openManualCompose: () => void;
@@ -275,7 +275,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     setIsSearchLoading(false);
   }, []);
 
-  const applySearchEmails = useCallback(async ({ query }: SearchEmailsPayload) => {
+  const executeSearch = useCallback(async (query: string) => {
     setActiveSearchQuery(query);
     setIsSearchLoading(true);
     setSearchThreads([]);
@@ -622,7 +622,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
           showAssistantReplyDraft: (payload) => {
             showAssistantReplyDraft(payload, isDraftRevision);
           },
-          applySearchEmails: applySearchEmails,
+          applySearchEmails: (payload) => executeSearch(payload.query),
           openEmail: (payload) => {
             openEmail(payload.threadId);
           },
@@ -647,7 +647,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
           showAssistantReplyDraft: (payload) => {
             showAssistantReplyDraft(payload, isDraftRevision);
           },
-          applySearchEmails: applySearchEmails,
+          applySearchEmails: (payload) => executeSearch(payload.query),
           openEmail: (payload) => {
             openEmail(payload.threadId);
           },
@@ -664,7 +664,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       });
     },
     [
-      applySearchEmails,
+      executeSearch,
       canSendActiveDraft,
       markActiveDraftSending,
       openEmail,
@@ -901,6 +901,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     searchThreads,
     isSearchLoading,
     clearSearch,
+    executeSearch,
     composeDraft,
     isComposeOpen,
     openManualCompose,

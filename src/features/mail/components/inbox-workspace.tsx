@@ -12,6 +12,7 @@ import { getMailboxById, type MailboxId } from "@/shared/constants";
 import { Card, CardContent } from "@/shared/ui";
 
 import { MailAppWorkspace } from "@/features/mail/components/mail-app-workspace";
+import { MailSearchFilters } from "@/features/mail/components/mail-search-filters";
 import { ReconnectGoogleButton } from "./reconnect-google-button";
 import { AppHeader } from "@/app/(main)/app/_components/app-header";
 
@@ -106,7 +107,7 @@ export async function InboxWorkspace({
   return (
     <MailAppWorkspace
       key={mailbox}
-      header={<AppHeader />}
+      header={<AppHeader search={<MailSearchFilters />} />}
       mailbox={mailbox}
       threads={threads}
       conversation={conversation}

@@ -1,7 +1,7 @@
 import type { AssistantContext } from "@/features/assistant/types/assistant-action";
 import { serializeAssistantContextForPrompt } from "@/features/assistant/lib/serialize-assistant-context";
 
-export const PROMPT_VERSION = "2";
+export const PROMPT_VERSION = "3";
 
 const SYSTEM_PROMPT_SPEC = `You are CommandMail AI. Control a mail app via structured JSON. Return valid JSON only — no markdown fences, no text outside the object.
 
@@ -44,9 +44,14 @@ draft revision (hasActiveDraft=true):
 
 search:
 - search before asking when a reasonable query exists
-- Gmail syntax preferred; plain keywords ok
+- "unread emails" is a search intent for is:unread; "read emails" is a search intent for is:read (the opposite filter) — not a request to read currentConversation
+- Gmail syntax preferred; plain keywords ok; combine operators with spaces; no space after the colon (from:sarah, not from: sarah)
 - clarify only after search if still ambiguous
-- syntax: from:<sender>, subject:<text>, newer_than:10d, <keyword>
+- operators: from:, to:, cc:, subject:, is:unread, is:read, has:attachment, filename:
+- relative dates: newer_than/older_than use d/m/y only, never w — this week=7d, this month=1m, this year=1y
+- absolute dates: after:YYYY/MM/DD, before:YYYY/MM/DD — never mix with newer_than/older_than
+- never generate: newer_than:1w, older_than:2026-01-01, newer_than:2026/01/01, after:1m, newer_than:0d
+- e.g. "read emails" -> is:read; "unread this week" -> is:unread newer_than:7d; "unread from Anthropic this month" -> from:anthropic is:unread newer_than:1m; "before January 2026" -> before:2026/01/01; "after January 2026" -> after:2026/01/01; "PDF invoices before January 2026" -> invoice has:attachment filename:pdf before:2026/01/01
 
 open:
 - threadId from context only; never invent

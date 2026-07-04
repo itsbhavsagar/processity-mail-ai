@@ -18,6 +18,20 @@ function toGmailDate(isoDate: string): string {
   return isoDate.replaceAll("-", "/");
 }
 
+// Gmail's before: is exclusive of the given date, but the "Date to" picker
+// should mean "include this day" — so we search before the following day.
+function toGmailDateInclusiveEnd(isoDate: string): string {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCDate(date.getUTCDate() + 1);
+
+  const nextYear = date.getUTCFullYear();
+  const nextMonth = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const nextDay = String(date.getUTCDate()).padStart(2, "0");
+
+  return `${nextYear}/${nextMonth}/${nextDay}`;
+}
+
 export function buildGmailQuery(keyword: string, filters: MailFilters): string {
   const parts: string[] = [];
 
@@ -40,7 +54,7 @@ export function buildGmailQuery(keyword: string, filters: MailFilters): string {
   }
 
   if (filters.dateTo) {
-    parts.push(`before:${toGmailDate(filters.dateTo)}`);
+    parts.push(`before:${toGmailDateInclusiveEnd(filters.dateTo)}`);
   }
 
   return parts.join(" ");

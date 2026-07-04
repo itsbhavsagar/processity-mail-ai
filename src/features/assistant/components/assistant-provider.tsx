@@ -102,7 +102,13 @@ export function useAssistant() {
   return context;
 }
 
-export function AssistantProvider({ children }: { children: ReactNode }) {
+export function AssistantProvider({
+  children,
+  header,
+}: {
+  children: ReactNode;
+  header?: ReactNode;
+}) {
   const router = useRouter();
   const mailContextRef = useRef<AssistantMailContext>(defaultMailContext);
   const [, startSendTransition] = useTransition();
@@ -750,7 +756,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       typeAssistantText,
     ],
   );
-  
+
   const submitPrompt = useCallback(
     async (promptOverride?: string) => {
       const trimmed = (promptOverride ?? assistantInput).trim();
@@ -792,22 +798,30 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
 
   return (
     <AssistantContext.Provider value={contextValue}>
-      {children}
+      <div className="flex h-dvh flex-col overflow-hidden">
+        {header}
 
-      <AssistantPanel
-        messages={assistantMessages}
-        input={assistantInput}
-        onInputChange={setAssistantInput}
-        isLoading={assistantLoading}
-        isBusy={assistantBusy}
-        typingAssistantText={typingAssistantText}
-        onSubmitPrompt={() => submitPrompt()}
-        onSuggestionSelect={submitPrompt}
-        activeComposeMessageId={activeComposeMessageId}
-        composeDraft={composeDraft}
-        onComposeDraftChange={updateComposeDraft}
-        onComposeSend={sendCompose}
-      />
+        <div className="flex min-h-0 flex-1">
+          <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+
+          <aside className="hidden w-[360px] shrink-0 border-l border-border/60 bg-background md:flex md:flex-col">
+            <AssistantPanel
+              messages={assistantMessages}
+              input={assistantInput}
+              onInputChange={setAssistantInput}
+              isLoading={assistantLoading}
+              isBusy={assistantBusy}
+              typingAssistantText={typingAssistantText}
+              onSubmitPrompt={() => submitPrompt()}
+              onSuggestionSelect={submitPrompt}
+              activeComposeMessageId={activeComposeMessageId}
+              composeDraft={composeDraft}
+              onComposeDraftChange={updateComposeDraft}
+              onComposeSend={sendCompose}
+            />
+          </aside>
+        </div>
+      </div>
     </AssistantContext.Provider>
   );
 }

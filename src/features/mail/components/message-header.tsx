@@ -9,8 +9,8 @@ import {
   getMailboxDisplayName,
 } from "@/features/mail/lib/parse-mailbox";
 import type { MailMessage } from "@/features/mail/types/mail-message";
-import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui";
 import { cn } from "@/shared/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui";
 
 import { SenderAvatar } from "./sender-avatar";
 
@@ -48,9 +48,7 @@ function MetadataRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3 gap-y-0.5 text-sm">
       <span className="text-muted-foreground">{label}</span>
-      <span className="min-w-0 wrap-break-word text-foreground">
-        {value}
-      </span>
+      <span className="min-w-0 wrap-break-word text-foreground">{value}</span>
     </div>
   );
 }
@@ -71,11 +69,7 @@ export function MessageHeader({
   return (
     <header className="min-w-0">
       <div className="flex gap-3 sm:gap-4">
-        <SenderAvatar
-          name={senderName}
-          email={senderEmail}
-          size="md"
-        />
+        <SenderAvatar name={senderName} email={senderEmail} size="md" />
 
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">

@@ -9,7 +9,6 @@ import {
   FiMail,
   FiMessageCircle,
   FiMic,
-  FiX,
 } from "react-icons/fi";
 
 import { AssistantMessageRenderer } from "@/features/assistant/components/assistant-message-renderer";
@@ -88,12 +87,10 @@ export function AssistantPanel({
   onComposeDraftChange,
   onComposeSend,
 }: AssistantPanelProps) {
-  const [isOpen, setIsOpen] = useState(false);
   const [isComposeStarterOpen, setIsComposeStarterOpen] = useState(false);
   const [composeStarterDraft, setComposeStarterDraft] =
     useState<ComposeDraft>(emptyComposeDraft);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const fabRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const focusInput = () => {
@@ -124,12 +121,12 @@ export function AssistantPanel({
   };
 
   useEffect(() => {
-    if (!isOpen || isLoading || isBusy) {
+    if (isLoading || isBusy) {
       return;
     }
 
     focusInput();
-  }, [isOpen, isLoading, isBusy, messages.length]);
+  }, [isLoading, isBusy, messages.length]);
 
   useEffect(() => {
     if (messages.length === 0 && !typingAssistantText) {
@@ -141,25 +138,6 @@ export function AssistantPanel({
     });
   }, [messages, isLoading, isBusy, composeDraft, typingAssistantText]);
 
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") {
-        return;
-      }
-
-      event.stopPropagation();
-      setIsOpen(false);
-      fabRef.current?.focus();
-    };
-
-    window.addEventListener("keydown", handleKeyDown, true);
-    return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [isOpen]);
-
   const handleInputKeyDown = (
     event: React.KeyboardEvent<HTMLTextAreaElement>,
   ) => {
@@ -169,117 +147,95 @@ export function AssistantPanel({
     }
   };
 
-  const toggleOpen = () => {
-    setIsOpen((current) => !current);
-  };
-
   return (
-    <div className="pointer-events-none fixed bottom-6 right-6 z-50">
-      <div
-        id="commandmail-ai-panel"
-        role="region"
-        aria-label="CommandMail AI assistant"
-        aria-hidden={!isOpen}
-        className={cn(
-          "absolute right-0 bottom-full mb-3 flex w-[min(420px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-border/60 bg-background shadow-xl transition-all duration-200",
-          "h-[min(600px,calc(100dvh-6rem))]",
-          isOpen
-            ? "pointer-events-auto visible translate-y-0 opacity-100"
-            : "pointer-events-none invisible translate-y-2 opacity-0",
-        )}
-      >
-        <header className="flex shrink-0 items-center justify-between border-b border-border/60 px-4 py-3">
-          <div className="min-w-0">
-            <h2
-              id="commandmail-ai-title"
-              className="flex items-center gap-2 truncate text-sm font-semibold tracking-tight"
-            >
-              <span className="relative flex size-4 shrink-0 items-center justify-center">
-                <FiMessageCircle className="size-4 text-primary" aria-hidden />
-                <span
-                  className={cn(
-                    "absolute -right-0.5 -top-0.5 size-1.5 rounded-full border border-background",
-                    isLoading || isBusy
-                      ? "animate-pulse bg-amber-500"
-                      : "bg-emerald-500",
-                  )}
-                  aria-hidden
-                />
-              </span>
-              <span className="truncate">{ASSISTANT_COPY.panel.title}</span>
-            </h2>
-            {isLoading ? (
-              <p className="text-xs text-muted-foreground" aria-live="polite">
-                {ASSISTANT_COPY.panel.typing}
-              </p>
-            ) : null}
-          </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="size-8 shrink-0 text-muted-foreground"
-            onClick={() => setIsOpen(false)}
-            aria-label={ASSISTANT_COPY.panel.closeLabel}
+    <div
+      id="commandmail-ai-panel"
+      role="region"
+      aria-label="CommandMail AI assistant"
+      className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-background"
+    >
+      <header className="flex h-18 shrink-0 items-center justify-between border-b border-border/60 px-4">
+        <div className="min-w-0">
+          <h2
+            id="commandmail-ai-title"
+            className="flex items-center gap-2 truncate text-sm font-semibold tracking-tight"
           >
-            <FiX className="size-4" aria-hidden />
-          </Button>
-        </header>
+            <span className="relative flex size-4 shrink-0 items-center justify-center">
+              <FiMessageCircle className="size-4 text-primary" aria-hidden />
+              <span
+                className={cn(
+                  "absolute -right-0.5 -top-0.5 size-1.5 rounded-full border border-background",
+                  isLoading || isBusy
+                    ? "animate-pulse bg-amber-500"
+                    : "bg-emerald-500",
+                )}
+                aria-hidden
+              />
+            </span>
+            <span className="truncate">{ASSISTANT_COPY.panel.title}</span>
+          </h2>
+          {isLoading ? (
+            <p className="text-xs text-muted-foreground" aria-live="polite">
+              {ASSISTANT_COPY.panel.typing}
+            </p>
+          ) : null}
+        </div>
+      </header>
 
+      {messages.length === 0 ? (
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 overflow-y-auto px-4 py-6">
+          {isComposeStarterOpen ? (
+            <div className="w-full space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3">
+              <ComposeDraftForm
+                draft={composeStarterDraft}
+                onDraftChange={setComposeStarterDraft}
+                fieldIdPrefix="assistant-compose-starter"
+              />
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleComposeStarterCancel}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={!composeStarterDraft.to.trim()}
+                  onClick={handleComposeStarterSubmit}
+                >
+                  Draft Email
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="text-sm font-medium text-foreground">
+                {ASSISTANT_COPY.panel.emptyHeading}
+              </p>
+              <div className="flex flex-col items-center gap-4">
+                {SUGGESTIONS.map((suggestion) => (
+                  <motion.button
+                    key={suggestion.title}
+                    type="button"
+                    whileHover={{ y: -1 }}
+                    transition={{ duration: 0.15 }}
+                    className="flex w-56 items-center justify-center gap-2 rounded-full border border-border/60 bg-muted/30 px-4 py-2.5 text-sm text-foreground/90 transition-colors hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
+                    onClick={() => handleSuggestionClick(suggestion)}
+                  >
+                    <suggestion.icon className="size-4" aria-hidden />
+                    {suggestion.title}
+                  </motion.button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      ) : (
         <ScrollArea className="min-h-0 flex-1">
           <div className="space-y-3 px-4 py-4">
-            {messages.length === 0 ? (
-              <div className="space-y-4">
-                <p className="text-sm font-medium text-foreground">
-                  {ASSISTANT_COPY.panel.emptyHeading}
-                </p>
-
-                {isComposeStarterOpen ? (
-                  <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3">
-                    <ComposeDraftForm
-                      draft={composeStarterDraft}
-                      onDraftChange={setComposeStarterDraft}
-                      fieldIdPrefix="assistant-compose-starter"
-                    />
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleComposeStarterCancel}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        disabled={!composeStarterDraft.to.trim()}
-                        onClick={handleComposeStarterSubmit}
-                      >
-                        Draft Email
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {SUGGESTIONS.map((suggestion) => (
-                      <motion.button
-                        key={suggestion.title}
-                        type="button"
-                        whileHover={{ y: -1 }}
-                        transition={{ duration: 0.15 }}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/30 px-3 py-1.5 text-xs text-foreground/90 transition-colors hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
-                        onClick={() => handleSuggestionClick(suggestion)}
-                      >
-                        <suggestion.icon className="size-3.5" aria-hidden />
-                        {suggestion.title}
-                      </motion.button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : null}
-
             {messages.map((message) => (
               <AssistantMessageRenderer
                 key={message.id}
@@ -309,70 +265,52 @@ export function AssistantPanel({
             <div ref={scrollRef} />
           </div>
         </ScrollArea>
+      )}
 
-        <footer className="shrink-0 border-t border-border/60 p-3">
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              onSubmitPrompt();
-            }}
-            className="space-y-2"
-          >
-            <div className="flex items-end gap-2 rounded-2xl border border-border/60 bg-muted/20 px-3 py-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="size-8 shrink-0 text-muted-foreground"
-                disabled
-                aria-label={ASSISTANT_COPY.panel.voiceLabel}
-              >
-                <FiMic className="size-4" aria-hidden />
-              </Button>
-              <Textarea
-                ref={inputRef}
-                value={input}
-                onChange={(event) => onInputChange(event.target.value)}
-                onKeyDown={handleInputKeyDown}
-                placeholder={ASSISTANT_COPY.panel.inputPlaceholder}
-                rows={1}
-                className="max-h-28 min-h-8 flex-1 resize-none border-0 bg-transparent px-0 py-1.5 shadow-none focus-visible:ring-0"
-                disabled={isLoading || isBusy}
-                aria-label={ASSISTANT_COPY.panel.inputPlaceholder}
-              />
-              <Button
-                type="submit"
-                size="icon"
-                variant="ghost"
-                className="size-8 shrink-0 text-muted-foreground hover:text-foreground"
-                disabled={isLoading || isBusy || !input.trim()}
-                aria-label={ASSISTANT_COPY.panel.sendLabel}
-                onMouseDown={(event) => event.preventDefault()}
-              >
-                <FiArrowRight className="size-4" aria-hidden />
-              </Button>
-            </div>
-          </form>
-        </footer>
-      </div>
-
-      <Button
-        ref={fabRef}
-        type="button"
-        onClick={toggleOpen}
-        aria-label={ASSISTANT_COPY.panel.openLabel}
-        aria-expanded={isOpen}
-        aria-controls="commandmail-ai-panel"
-        className={cn(
-          "pointer-events-auto h-11 gap-2 rounded-full px-4 shadow-lg transition-transform duration-150 ease-out hover:scale-105 active:scale-95",
-          isOpen && "ring-2 ring-primary/20",
-        )}
-      >
-        <FiMessageCircle className="size-4 shrink-0" aria-hidden />
-        <span className="hidden text-sm font-medium sm:inline">
-          {ASSISTANT_COPY.panel.title}
-        </span>
-      </Button>
+      <footer className="shrink-0 border-t border-border/60 p-3">
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSubmitPrompt();
+          }}
+          className="space-y-2"
+        >
+          <div className="flex items-end gap-2 rounded-2xl border border-border/60 bg-muted/20 px-3 py-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-8 shrink-0 text-muted-foreground"
+              disabled
+              aria-label={ASSISTANT_COPY.panel.voiceLabel}
+            >
+              <FiMic className="size-4" aria-hidden />
+            </Button>
+            <Textarea
+              ref={inputRef}
+              value={input}
+              onChange={(event) => onInputChange(event.target.value)}
+              onKeyDown={handleInputKeyDown}
+              placeholder={ASSISTANT_COPY.panel.inputPlaceholder}
+              rows={1}
+              className="max-h-28 min-h-8 flex-1 resize-none border-0 bg-transparent px-0 py-1.5 shadow-none focus-visible:ring-0"
+              disabled={isLoading || isBusy}
+              aria-label={ASSISTANT_COPY.panel.inputPlaceholder}
+            />
+            <Button
+              type="submit"
+              size="icon"
+              variant="ghost"
+              className="size-8 shrink-0 text-muted-foreground hover:text-foreground"
+              disabled={isLoading || isBusy || !input.trim()}
+              aria-label={ASSISTANT_COPY.panel.sendLabel}
+              onMouseDown={(event) => event.preventDefault()}
+            >
+              <FiArrowRight className="size-4" aria-hidden />
+            </Button>
+          </div>
+        </form>
+      </footer>
     </div>
   );
 }

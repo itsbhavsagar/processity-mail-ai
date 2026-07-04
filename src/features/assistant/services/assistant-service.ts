@@ -1,23 +1,19 @@
+import { ASSISTANT_COPY } from "@/features/assistant/constants";
+import { logAssistantProviderError } from "@/features/assistant/lib/assistant-error-messages";
+import {
+  ACKNOWLEDGEMENT_PHRASES,
+  buildAssistantSystemPrompt,
+} from "@/features/assistant/lib/assistant-system-prompt";
 import {
   assistantResponseSchema,
   type AssistantContext,
   type AssistantRequest,
   type AssistantResponse,
 } from "@/features/assistant/types/assistant-action";
-import { ASSISTANT_COPY } from "@/features/assistant/constants";
-import {
-  logAssistantProviderError,
-} from "@/features/assistant/lib/assistant-error-messages";
-import {
-  ACKNOWLEDGEMENT_PHRASES,
-  buildAssistantSystemPrompt,
-} from "@/features/assistant/lib/assistant-system-prompt";
 
-const DEFAULT_ASSISTANT_MODEL =
-  "meta-llama/llama-4-scout-17b-16e-instruct";
+const DEFAULT_ASSISTANT_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
 
-const GROQ_API_BASE =
-  "https://api.groq.com/openai/v1/chat/completions";
+const GROQ_API_BASE = "https://api.groq.com/openai/v1/chat/completions";
 
 function resolveAssistantModel(): string {
   return process.env.ASSISTANT_MODEL ?? DEFAULT_ASSISTANT_MODEL;
@@ -25,10 +21,7 @@ function resolveAssistantModel(): string {
 
 export class AssistantServiceError extends Error {
   readonly code:
-    | "configuration"
-    | "model_error"
-    | "validation_error"
-    | "rate_limit";
+    "configuration" | "model_error" | "validation_error" | "rate_limit";
   readonly providerDetail?: string;
 
   constructor(
@@ -282,11 +275,7 @@ export async function generateAssistantResponse(
   const validated = assistantResponseSchema.safeParse(parsed);
 
   if (!validated.success) {
-    return toSafeAssistantResponse(
-      parsed,
-      "schema_validation_failed",
-      content,
-    );
+    return toSafeAssistantResponse(parsed, "schema_validation_failed", content);
   }
 
   const sanitized = sanitizeAssistantResponse(validated.data, request);

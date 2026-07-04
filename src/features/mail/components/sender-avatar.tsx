@@ -1,8 +1,8 @@
 "use client";
 
 import { getSenderInitials } from "@/features/mail/lib/sender-avatar";
-import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui";
 import { cn } from "@/shared/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui";
 
 const SIZE_CLASS = {
   sm: "size-9",

@@ -1,11 +1,10 @@
-import { cookies } from "next/headers";
 import { getServerSession } from "next-auth";
+import { cookies } from "next/headers";
 
-import type { UserProfileMenuUser } from "@/features/auth/components/user-profile-menu";
 import { authConfig } from "@/features/auth/server/auth-config";
 import {
-  GmailApiError,
   getConversation,
+  GmailApiError,
   listThreads,
 } from "@/features/gmail/services/gmail-service";
 import type { MailConversation } from "@/features/mail/types/mail-conversation";
@@ -18,9 +17,7 @@ import {
 import { Card, CardContent } from "@/shared/ui";
 
 import { MailAppWorkspace } from "@/features/mail/components/mail-app-workspace";
-import { MailSearchFilters } from "@/features/mail/components/mail-search-filters";
 import { ReconnectGoogleButton } from "./reconnect-google-button";
-import { AppHeader } from "@/app/(main)/app/_components/app-header";
 
 interface InboxWorkspaceProps {
   mailbox: MailboxId;
@@ -49,21 +46,14 @@ function WorkspaceStatusCard({
   );
 }
 
-function GoogleSessionExpiredState({
-  user,
-}: {
-  user?: UserProfileMenuUser;
-}) {
+function GoogleSessionExpiredState() {
   return (
-    <div className="flex h-dvh flex-col">
-      <AppHeader user={user} />
-      <div className="flex min-h-0 flex-1 items-center justify-center p-6">
-        <WorkspaceStatusCard
-          title="Your Gmail connection expired"
-          description="Google access tokens last about an hour. Sign in again and we'll reconnect your inbox."
-          action={<ReconnectGoogleButton />}
-        />
-      </div>
+    <div className="flex min-h-0 flex-1 items-center justify-center p-6">
+      <WorkspaceStatusCard
+        title="Your Gmail connection expired"
+        description="Google access tokens last about an hour. Sign in again and we'll reconnect your inbox."
+        action={<ReconnectGoogleButton />}
+      />
     </div>
   );
 }
@@ -78,7 +68,7 @@ export async function InboxWorkspace({
     cookieStore.get(SIDEBAR_COLLAPSED_COOKIE)?.value === "true";
 
   if (!session?.accessToken || session.error === "RefreshAccessTokenError") {
-    return <GoogleSessionExpiredState user={session?.user} />;
+    return <GoogleSessionExpiredState />;
   }
 
   const mailboxLabel = getMailboxById(mailbox).label;
@@ -88,7 +78,7 @@ export async function InboxWorkspace({
     threads = await listThreads(session.accessToken, mailbox);
   } catch (error) {
     if (error instanceof GmailApiError && error.status === 401) {
-      return <GoogleSessionExpiredState user={session.user} />;
+      return <GoogleSessionExpiredState />;
     }
 
     return (
@@ -104,10 +94,7 @@ export async function InboxWorkspace({
 
   if (conversationId) {
     try {
-      conversation = await getConversation(
-        session.accessToken,
-        conversationId,
-      );
+      conversation = await getConversation(session.accessToken, conversationId);
     } catch (error) {
       if (error instanceof GmailApiError && error.status === 401) {
         conversationError = "auth";
@@ -119,7 +106,6 @@ export async function InboxWorkspace({
 
   return (
     <MailAppWorkspace
-      header={<AppHeader user={session.user} search={<MailSearchFilters />} />}
       initialSidebarCollapsed={initialSidebarCollapsed}
       mailbox={mailbox}
       threads={threads}

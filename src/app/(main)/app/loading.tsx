@@ -1,15 +1,11 @@
 import { cookies } from "next/headers";
-import { getServerSession } from "next-auth";
 
-import { authConfig } from "@/features/auth/server/auth-config";
 import { SIDEBAR_COLLAPSED_COOKIE } from "@/shared/constants";
-import { Card, CardContent, Skeleton } from "@/shared/ui";
+import { Skeleton } from "@/shared/ui";
 
-import { AppHeader } from "./_components/app-header";
 import { AppShell } from "./_components/app-shell";
 
 export default async function Loading() {
-  const session = await getServerSession(authConfig);
   const cookieStore = await cookies();
   const initialSidebarCollapsed =
     cookieStore.get(SIDEBAR_COLLAPSED_COOKIE)?.value === "true";
@@ -17,11 +13,10 @@ export default async function Loading() {
   return (
     <AppShell
       activeMailbox="inbox"
-      header={<AppHeader user={session?.user} />}
       initialSidebarCollapsed={initialSidebarCollapsed}
       workspace={
-        <Card className="flex h-full min-h-0 flex-col border-border/60 bg-card/80 shadow-sm">
-          <CardContent className="space-y-3 px-4 py-4">
+        <div className="flex h-full min-h-0 md:grid md:grid-cols-[300px_minmax(0,1fr)]">
+          <div className="h-full min-h-0 space-y-3 overflow-hidden px-4 py-4 md:border-r md:border-border/60">
             {Array.from({ length: 6 }).map((_, index) => (
               <div key={index} className="flex gap-3">
                 <Skeleton className="size-8 rounded-full" />
@@ -32,8 +27,9 @@ export default async function Loading() {
                 </div>
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+          <div className="hidden md:block" />
+        </div>
       }
     />
   );

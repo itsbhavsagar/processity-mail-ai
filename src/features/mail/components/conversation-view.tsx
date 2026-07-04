@@ -39,10 +39,10 @@ function ConversationLoadingState({ mode }: { mode: ConversationViewMode }) {
         "flex h-full min-h-0 flex-col shadow-sm",
         mode === "focus"
           ? "border-0 bg-transparent shadow-none"
-          : "border-border/60 bg-card/80",
+          : "rounded-none border-0 bg-background shadow-none",
       )}
     >
-      <CardHeader className="shrink-0 space-y-3 border-b border-border/60 px-6 py-4">
+      <CardHeader className="h-[72px] shrink-0 justify-center space-y-3 border-b border-border/60 px-6">
         <Skeleton className="h-6 w-2/3" />
         <Skeleton className="h-4 w-24" />
       </CardHeader>
@@ -65,7 +65,7 @@ function ConversationEmptyState({ mode }: { mode: ConversationViewMode }) {
         "flex h-full min-h-0 flex-col items-center justify-center shadow-sm",
         mode === "focus"
           ? "border-0 bg-transparent shadow-none"
-          : "border-border/60 bg-card/80",
+          : "rounded-none border-0 bg-background shadow-none",
       )}
     >
       <CardContent className="px-6 py-16 text-center">
@@ -93,7 +93,7 @@ function ConversationAuthErrorState({ mode }: { mode: ConversationViewMode }) {
         "flex h-full min-h-0 flex-col items-center justify-center shadow-sm",
         mode === "focus"
           ? "border-0 bg-transparent shadow-none"
-          : "border-border/60 bg-card/80",
+          : "rounded-none border-0 bg-background shadow-none",
       )}
     >
       <CardContent className="px-6 py-16 text-center">
@@ -125,7 +125,7 @@ function ConversationErrorState({ mode }: { mode: ConversationViewMode }) {
         "flex h-full min-h-0 flex-col items-center justify-center shadow-sm",
         mode === "focus"
           ? "border-0 bg-transparent shadow-none"
-          : "border-border/60 bg-card/80",
+          : "rounded-none border-0 bg-background shadow-none",
       )}
     >
       <CardContent className="px-6 py-16 text-center">
@@ -183,13 +183,13 @@ export function ConversationView({
         "flex h-full min-h-0 flex-col overflow-hidden",
         isFocus
           ? "border-0 bg-transparent shadow-none"
-          : "border-border/60 bg-card/80 shadow-sm",
+          : "rounded-none border-0 bg-background shadow-none",
       )}
     >
       <CardHeader
         className={cn(
           "shrink-0 border-b border-border/60",
-          isFocus ? "px-4 py-4 sm:px-8" : "px-6 py-4",
+          isFocus ? "px-4 py-4 sm:px-8" : "h-[72px] justify-center px-6",
         )}
       >
         {isFocus ? (
@@ -221,8 +221,10 @@ export function ConversationView({
           <div className="min-w-0 flex-1">
             <CardTitle
               className={cn(
-                "wrap-break-word font-semibold leading-snug tracking-tight ",
-                isFocus ? "text-xl sm:text-2xl" : "text-lg",
+                "font-semibold leading-snug tracking-tight",
+                isFocus
+                  ? "wrap-break-word text-xl sm:text-2xl"
+                  : "truncate text-lg",
               )}
             >
               {conversation.subject}

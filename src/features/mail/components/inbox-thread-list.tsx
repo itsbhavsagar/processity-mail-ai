@@ -57,8 +57,8 @@ export function InboxThreadList({
 
   if (isSearchLoading) {
     return (
-      <section className="flex h-full min-h-0 flex-col rounded-xl border border-border/60 bg-card/80 shadow-sm">
-        <header className="shrink-0 space-y-3 border-b border-border/60 px-4 py-4">
+      <section className="flex h-full min-h-0 flex-col bg-background">
+        <header className="flex h-[72px] shrink-0 flex-col justify-center border-b border-border/60 px-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <h1 className="text-sm font-semibold tracking-tight">
@@ -102,7 +102,7 @@ export function InboxThreadList({
 
   if (threads.length === 0) {
     return (
-      <Card className="flex h-full min-h-0 flex-col items-center justify-center border-border/60 bg-card/80 shadow-sm">
+      <Card className="flex h-full min-h-0 flex-col items-center justify-center rounded-none border-0 bg-background shadow-none">
         <CardContent className="px-6 py-12 text-center">
           <span
             aria-hidden
@@ -141,8 +141,8 @@ export function InboxThreadList({
   }
 
   return (
-    <section className="flex h-full min-h-0 flex-col rounded-xl border border-border/60 bg-card/80 shadow-sm">
-      <header className="shrink-0 border-b border-border/60 px-4 py-4">
+    <section className="flex h-full min-h-0 flex-col bg-background">
+      <header className="flex h-[72px] shrink-0 flex-col justify-center border-b border-border/60 px-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-sm font-semibold tracking-tight">{listTitle}</h1>

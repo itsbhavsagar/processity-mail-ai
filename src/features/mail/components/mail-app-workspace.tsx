@@ -4,18 +4,18 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useAssistant } from "@/features/assistant/components/assistant-provider";
 import { markThreadRead } from "@/features/mail/actions/mark-thread-read";
-import type { MailConversation } from "@/features/mail/types/mail-conversation";
-import type { MailThread } from "@/features/mail/types/mail-thread";
 import {
   emptyComposeDraft,
   isComposeDraft,
 } from "@/features/mail/types/compose-draft";
+import type { MailConversation } from "@/features/mail/types/mail-conversation";
+import type { MailThread } from "@/features/mail/types/mail-thread";
 import type { MailboxId } from "@/shared/constants";
 
 import { AppShell } from "@/app/(main)/app/_components/app-shell";
 
-import { ComposeEmailDialog } from "./compose-email-dialog";
 import { ComposeButton } from "./compose-button";
+import { ComposeEmailDialog } from "./compose-email-dialog";
 import { InboxWorkspaceClient } from "./inbox-workspace-client";
 
 interface MailAppWorkspaceProps {
@@ -25,7 +25,6 @@ interface MailAppWorkspaceProps {
   conversationId?: string;
   mailbox: MailboxId;
   currentUserEmail?: string;
-  header: React.ReactNode;
   initialSidebarCollapsed: boolean;
 }
 
@@ -44,7 +43,6 @@ export function MailAppWorkspace({
   conversationId,
   mailbox,
   currentUserEmail,
-  header,
   initialSidebarCollapsed,
 }: MailAppWorkspaceProps) {
   const {
@@ -94,7 +92,13 @@ export function MailAppWorkspace({
       conversation,
       currentUserEmail,
     });
-  }, [mailbox, conversationId, conversation, currentUserEmail, syncMailContext]);
+  }, [
+    mailbox,
+    conversationId,
+    conversation,
+    currentUserEmail,
+    syncMailContext,
+  ]);
 
   useEffect(() => {
     clearSearch();
@@ -154,9 +158,7 @@ export function MailAppWorkspace({
     <>
       <ComposeEmailDialog
         open={isComposeOpen}
-        draft={
-          isComposeDraft(composeDraft) ? composeDraft : emptyComposeDraft
-        }
+        draft={isComposeDraft(composeDraft) ? composeDraft : emptyComposeDraft}
         onDraftChange={updateComposeDraft}
         onOpenChange={setComposeOpen}
         onSent={() => updateComposeDraft(emptyComposeDraft)}
@@ -164,7 +166,6 @@ export function MailAppWorkspace({
 
       <AppShell
         isFocusMode={isFocusMode}
-        header={header}
         activeMailbox={mailbox}
         initialSidebarCollapsed={initialSidebarCollapsed}
         sidebarActions={(isCollapsed) => (

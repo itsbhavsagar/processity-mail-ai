@@ -1,6 +1,10 @@
 import { buildMimeMessage, buildReplyMimeMessage } from "@/features/gmail/mappers/build-mime-message";
 import { normalizeConversation } from "@/features/gmail/mappers/normalize-conversation";
 import { normalizeThread } from "@/features/gmail/mappers/normalize-thread";
+import {
+  getMailboxDisplayName,
+  parseMailboxList,
+} from "@/features/mail/lib/parse-mailbox";
 import type { GmailThreadResponse } from "@/features/gmail/types/gmail-api";
 import type { MailConversation } from "@/features/mail/types/mail-conversation";
 import type { MailDraft } from "@/features/mail/types/mail-draft";
@@ -248,6 +252,42 @@ export async function listHistory(
     }));
 
   return { historyId: data.historyId, addedMessages };
+}
+
+interface GmailMessageMetadataResponse {
+  threadId: string;
+  payload?: {
+    headers?: Array<{ name: string; value: string }>;
+  };
+}
+
+export interface GmailMessageMetadata {
+  threadId: string;
+  sender: string;
+  subject: string;
+}
+
+export async function getMessageMetadata(
+  accessToken: string,
+  messageId: string,
+): Promise<GmailMessageMetadata> {
+  const data = await gmailFetch<GmailMessageMetadataResponse>(
+    `/messages/${messageId}?format=metadata&metadataHeaders=From&metadataHeaders=Subject`,
+    accessToken,
+  );
+
+  const headers = data.payload?.headers ?? [];
+  const getHeader = (name: string) =>
+    headers.find((header) => header.name.toLowerCase() === name.toLowerCase())
+      ?.value ?? "";
+
+  const senderAddress = parseMailboxList(getHeader("From"))[0];
+
+  return {
+    threadId: data.threadId,
+    sender: senderAddress ? getMailboxDisplayName(senderAddress) : "Unknown",
+    subject: getHeader("Subject") || "(No subject)",
+  };
 }
 
 export async function markThreadAsRead(

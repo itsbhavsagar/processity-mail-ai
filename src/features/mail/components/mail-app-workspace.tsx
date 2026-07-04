@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useAssistant } from "@/features/assistant/components/assistant-provider";
 import { markThreadRead } from "@/features/mail/actions/mark-thread-read";
+import { useInboxLiveSync } from "@/features/mail/hooks/use-inbox-live-sync";
 import {
   emptyComposeDraft,
   isComposeDraft,
@@ -58,6 +59,8 @@ export function MailAppWorkspace({
     updateComposeDraft,
     syncMailContext,
   } = useAssistant();
+
+  useInboxLiveSync({ mailbox, activeThreadId: conversationId });
 
   const [readThreadIds, setReadThreadIds] = useState<ReadonlySet<string>>(
     () => new Set(),

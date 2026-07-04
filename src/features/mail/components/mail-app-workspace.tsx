@@ -97,6 +97,10 @@ export function MailAppWorkspace({
   }, [mailbox, conversationId, conversation, currentUserEmail, syncMailContext]);
 
   useEffect(() => {
+    clearSearch();
+  }, [mailbox, clearSearch]);
+
+  useEffect(() => {
     if (!conversationId || conversationError || !conversation) {
       return;
     }

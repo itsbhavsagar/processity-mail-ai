@@ -1,6 +1,7 @@
 import type {
   AssistantAction,
   ComposeEmailPayload,
+  NavigateMailboxPayload,
   OpenEmailPayload,
   ReplyEmailPayload,
   SearchEmailsPayload,
@@ -13,6 +14,7 @@ export interface AssistantMutationHandlers {
     payload: SearchEmailsPayload,
   ) => void | Promise<void>;
   openEmail: (payload: OpenEmailPayload) => void;
+  navigateMailbox: (payload: NavigateMailboxPayload) => void;
   sendEmail: () => void;
 }
 
@@ -33,6 +35,9 @@ export async function executeAssistantActions(
         break;
       case "open_email":
         handlers.openEmail(action.payload);
+        break;
+      case "navigate_mailbox":
+        handlers.navigateMailbox(action.payload);
         break;
       case "send_email":
         handlers.sendEmail();

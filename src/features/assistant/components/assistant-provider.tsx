@@ -70,6 +70,7 @@ import {
   type AssistantDraft,
 } from "@/features/mail/types/compose-draft";
 import type { MailThread } from "@/features/mail/types/mail-thread";
+import type { MailboxId } from "@/shared/constants";
 
 const defaultMailContext: AssistantMailContext = {
   mailbox: "inbox",
@@ -300,6 +301,13 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       router.push(buildMailboxUrl(mailbox, threadId));
     },
     [activeSearchQuery, router, searchThreads],
+  );
+
+  const navigateMailbox = useCallback(
+    (mailbox: MailboxId) => {
+      router.push(buildMailboxUrl(mailbox));
+    },
+    [router],
   );
 
   const startFillAnimation = useCallback(
@@ -606,6 +614,9 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
           openEmail: (payload) => {
             openEmail(payload.threadId);
           },
+          navigateMailbox: (payload) => {
+            navigateMailbox(payload.mailbox);
+          },
           sendEmail: () => {
             sendCompose();
           },
@@ -631,6 +642,9 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
           openEmail: (payload) => {
             openEmail(payload.threadId);
           },
+          navigateMailbox: (payload) => {
+            navigateMailbox(payload.mailbox);
+          },
           sendEmail: () => {
             if (shouldSendDraft) {
               sendCompose();
@@ -648,6 +662,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       canSendActiveDraft,
       markActiveDraftSending,
       openEmail,
+      navigateMailbox,
       sendCompose,
       showAssistantComposeDraft,
       showAssistantReplyDraft,

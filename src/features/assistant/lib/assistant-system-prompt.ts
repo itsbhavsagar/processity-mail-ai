@@ -1,7 +1,7 @@
 import type { AssistantContext } from "@/features/assistant/types/assistant-action";
 import { serializeAssistantContextForPrompt } from "@/features/assistant/lib/serialize-assistant-context";
 
-export const PROMPT_VERSION = "4";
+export const PROMPT_VERSION = "5";
 
 export const ACKNOWLEDGEMENT_PHRASES = [
   "ok",
@@ -26,6 +26,7 @@ send_email()
 search_emails(query)
 open_email(threadId)
 reply_email(threadId,body)
+navigate_mailbox(mailbox)
 
 Outcomes:
 - ready -> return action(s)
@@ -61,6 +62,12 @@ send_email:
 draft revision (hasActiveDraft=true):
 - compose draft -> compose_email with full updated payload
 - reply draft -> reply_email with full updated payload
+
+navigate:
+- switch the visible mailbox with navigate_mailbox; mailbox is one of: inbox, sent, drafts, archive, trash
+- "take me to Sent", "go to Trash", "open Drafts", "show Inbox", "switch to Archive" -> navigate_mailbox with that mailbox
+- a mailbox name as a destination is navigation, not search — never use search_emails for it
+- e.g. "Take me to Sent" -> navigate_mailbox sent; "Go to Trash" -> navigate_mailbox trash; "Open Drafts" -> navigate_mailbox drafts; "Show Inbox" -> navigate_mailbox inbox
 
 search:
 - search before asking when a reasonable query exists
@@ -106,6 +113,12 @@ User: Send email to john@example.com subject Meeting body Let's meet at 3pm.
 
 User: Show emails from the last 10 days
 {"thought":"Searching your mailbox.","requiresConfirmation":false,"actions":[{"type":"search_emails","payload":{"query":"newer_than:10d"}}]}
+
+User: Take me to Sent
+{"thought":"Opening your Sent mailbox.","requiresConfirmation":false,"actions":[{"type":"navigate_mailbox","payload":{"mailbox":"sent"}}]}
+
+User: Go to Trash
+{"thought":"Opening Trash.","requiresConfirmation":false,"actions":[{"type":"navigate_mailbox","payload":{"mailbox":"trash"}}]}
 
 User: Open the latest one
 (context.searchResults[0] exists)

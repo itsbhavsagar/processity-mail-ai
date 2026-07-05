@@ -1,18 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-  useTransition,
-  type ReactNode,
-} from "react";
-import { toast } from "sonner";
-
 import { AssistantPanel } from "@/features/assistant/components/assistant-panel";
 import { ASSISTANT_COPY } from "@/features/assistant/constants";
 import { executeAssistantActions } from "@/features/assistant/executor/execute-assistant-action";
@@ -47,6 +34,7 @@ import {
 import type {
   AssistantResponse,
   ComposeEmailPayload,
+  ForwardEmailPayload,
   ReplyEmailPayload,
   SearchEmailsPayload,
 } from "@/features/assistant/types/assistant-action";
@@ -58,6 +46,7 @@ import type {
 import { searchMailThreads } from "@/features/mail/actions/search-mail-threads";
 import { sendEmail } from "@/features/mail/actions/send-email";
 import { sendReplyEmail } from "@/features/mail/actions/send-reply-email";
+import { buildForwardDraftFromMailContext } from "@/features/mail/lib/build-forward-draft";
 import { buildReplyDraftFromMailContext } from "@/features/mail/lib/build-reply-draft";
 import {
   assistantDraftToFormData,
@@ -73,6 +62,18 @@ import {
 } from "@/features/mail/types/compose-draft";
 import type { MailThread } from "@/features/mail/types/mail-thread";
 import type { MailboxId } from "@/shared/constants";
+import { useRouter } from "next/navigation";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react";
+import { toast } from "sonner";
 
 const defaultMailContext: AssistantMailContext = {
   mailbox: "inbox",
@@ -529,6 +530,33 @@ export function AssistantProvider({
     ],
   );
 
+  const showAssistantForwardDraft = useCallback(
+    (payload: ForwardEmailPayload, updateExisting = false) => {
+      const mail = mailContextRef.current;
+      const forwardDraft = buildForwardDraftFromMailContext(
+        mail,
+        payload.threadId,
+        payload.to,
+      );
+
+      if (!forwardDraft) {
+        toast.error("Open the conversation you want to forward first.");
+        setAssistantBusy(false);
+        return;
+      }
+
+      showAssistantComposeDraft(
+        {
+          to: forwardDraft.to,
+          subject: forwardDraft.subject,
+          body: forwardDraft.body,
+        },
+        updateExisting,
+      );
+    },
+    [showAssistantComposeDraft],
+  );
+
   const markActiveDraftSending = useCallback(() => {
     const messageId = activeComposeMessageIdRef.current;
 
@@ -634,7 +662,9 @@ export function AssistantProvider({
     (response: AssistantResponse) => {
       const hasDraftAction = response.actions.some(
         (action) =>
-          action.type === "compose_email" || action.type === "reply_email",
+          action.type === "compose_email" ||
+          action.type === "reply_email" ||
+          action.type === "forward_email",
       );
       const wantsSend = response.actions.some(
         (action) => action.type === "send_email",
@@ -656,6 +686,9 @@ export function AssistantProvider({
           },
           showAssistantReplyDraft: (payload) => {
             showAssistantReplyDraft(payload, isDraftRevision);
+          },
+          showAssistantForwardDraft: (payload) => {
+            showAssistantForwardDraft(payload, isDraftRevision);
           },
           applySearchEmails: applySearchAndShowResults,
           openEmail: (payload) => {
@@ -685,6 +718,9 @@ export function AssistantProvider({
           showAssistantReplyDraft: (payload) => {
             showAssistantReplyDraft(payload, isDraftRevision);
           },
+          showAssistantForwardDraft: (payload) => {
+            showAssistantForwardDraft(payload, isDraftRevision);
+          },
           applySearchEmails: applySearchAndShowResults,
           openEmail: (payload) => {
             openEmail(payload.threadId);
@@ -713,6 +749,7 @@ export function AssistantProvider({
       sendCompose,
       showAssistantComposeDraft,
       showAssistantReplyDraft,
+      showAssistantForwardDraft,
       typeAssistantText,
     ],
   );

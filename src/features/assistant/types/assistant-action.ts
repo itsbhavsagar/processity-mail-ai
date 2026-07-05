@@ -45,6 +45,14 @@ const replyEmailActionSchema = z.object({
   }),
 });
 
+const forwardEmailActionSchema = z.object({
+  type: z.literal("forward_email"),
+  payload: z.object({
+    threadId: z.string().min(1),
+    to: z.string().min(1),
+  }),
+});
+
 const navigateMailboxActionSchema = z.object({
   type: z.literal("navigate_mailbox"),
   payload: z.object({
@@ -58,6 +66,7 @@ export const assistantActionSchema = z.discriminatedUnion("type", [
   searchEmailsActionSchema,
   openEmailActionSchema,
   replyEmailActionSchema,
+  forwardEmailActionSchema,
   navigateMailboxActionSchema,
 ]);
 
@@ -89,6 +98,11 @@ export type OpenEmailPayload = Extract<
 export type ReplyEmailPayload = Extract<
   AssistantAction,
   { type: "reply_email" }
+>["payload"];
+
+export type ForwardEmailPayload = Extract<
+  AssistantAction,
+  { type: "forward_email" }
 >["payload"];
 
 export type NavigateMailboxPayload = Extract<

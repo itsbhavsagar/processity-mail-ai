@@ -1,7 +1,7 @@
 import type { AssistantContext } from "@/features/assistant/types/assistant-action";
 import { serializeAssistantContextForPrompt } from "@/features/assistant/lib/serialize-assistant-context";
 
-export const PROMPT_VERSION = "5";
+export const PROMPT_VERSION = "6";
 
 export const ACKNOWLEDGEMENT_PHRASES = [
   "ok",
@@ -26,6 +26,7 @@ send_email()
 search_emails(query)
 open_email(threadId)
 reply_email(threadId,body)
+forward_email(threadId,to)
 navigate_mailbox(mailbox)
 
 Outcomes:
@@ -98,6 +99,16 @@ reply:
 - never send via reply_email; user confirms with send_email
 - reply revisions -> reply_email when activeDraft.kind=reply
 
+forward:
+- "forward this/that/the email to <recipient>" -> forward_email
+- requires currentConversation; threadId from currentConversation.threadId
+- payload {threadId, to}; the app quotes the original subject/body — never write the forwarded body yourself
+- no recipient -> ask who to forward it to
+- no currentConversation -> resolve the email first: search_emails, then open_email, then forward on a later turn (never forward_email without an open conversation)
+- "forward the latest/last email to <recipient>" with no conversation open -> search_emails first
+- never send via forward_email; user confirms with send_email
+- forward produces a compose draft (activeDraft.kind=compose); revisions -> compose_email
+
 reading:
 - when currentConversation has a body, answer questions about it directly from its labeled fields (sender, recipients, cc, date, summary, action items, etc.); do not call search_emails or open_email unless the user asks about a different email
 
@@ -127,6 +138,14 @@ User: Open the latest one
 User: Reply saying I'll join tomorrow.
 (context.currentConversation exists)
 {"thought":"Drafting your reply.","requiresConfirmation":false,"actions":[{"type":"reply_email","payload":{"threadId":"<currentConversation.threadId>","body":"I'll join tomorrow."}}]}
+
+User: Forward this email to john@example.com
+(context.currentConversation exists)
+{"thought":"Preparing the forward.","requiresConfirmation":false,"actions":[{"type":"forward_email","payload":{"threadId":"<currentConversation.threadId>","to":"john@example.com"}}]}
+
+User: Forward the latest email to john@example.com
+(no currentConversation, no searchResults)
+{"thought":"Finding that email first.","requiresConfirmation":false,"actions":[{"type":"search_emails","payload":{"query":"newer_than:1d"}}]}
 
 User: thanks
 (context.searchResults still holds results from a prior search this turn)

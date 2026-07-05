@@ -1,6 +1,7 @@
 import type {
   AssistantAction,
   ComposeEmailPayload,
+  ForwardEmailPayload,
   NavigateMailboxPayload,
   OpenEmailPayload,
   ReplyEmailPayload,
@@ -10,6 +11,7 @@ import type {
 export interface AssistantMutationHandlers {
   showAssistantComposeDraft: (payload: ComposeEmailPayload) => void;
   showAssistantReplyDraft: (payload: ReplyEmailPayload) => void;
+  showAssistantForwardDraft: (payload: ForwardEmailPayload) => void;
   applySearchEmails: (
     payload: SearchEmailsPayload,
   ) => void | Promise<void>;
@@ -29,6 +31,9 @@ export async function executeAssistantActions(
         break;
       case "reply_email":
         handlers.showAssistantReplyDraft(action.payload);
+        break;
+      case "forward_email":
+        handlers.showAssistantForwardDraft(action.payload);
         break;
       case "search_emails":
         await handlers.applySearchEmails(action.payload);

@@ -57,8 +57,6 @@ export const authConfig = {
         return;
       }
 
-      // Persist first so a failed watch can be retried later by the renewal
-      // job; wrap the whole flow so sign-in never fails on a Gmail/Pub-Sub error.
       try {
         await upsertUser({
           email,

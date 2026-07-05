@@ -67,8 +67,6 @@ export function toApiMessageContent(message: AssistantChatMessage): string {
   }
 
   if (message.kind === "rich") {
-    // Presentational content derived from data already in context; keep a
-    // short, valid placeholder in the model-facing history.
     return "[Structured content shown to the user.]";
   }
 
@@ -80,10 +78,7 @@ export function toApiMessageContent(message: AssistantChatMessage): string {
     return `${message.content}\n\n[Superseded draft — not active.]`;
   }
 
-  if (
-    message.status === "preparing" ||
-    isComposeTypingStatus(message.status)
-  ) {
+  if (message.status === "preparing" || isComposeTypingStatus(message.status)) {
     return `${message.content}\n\n[Draft is being prepared.]`;
   }
 

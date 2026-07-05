@@ -133,6 +133,22 @@ export function AssistantPanel({
       return;
     }
 
+    const lastMessage = messages[messages.length - 1];
+    if (!typingAssistantText && lastMessage?.kind === "rich") {
+      let groupStart = messages.length - 1;
+      while (groupStart > 0 && messages[groupStart - 1].kind === "rich") {
+        groupStart -= 1;
+      }
+      const target = messages[groupStart];
+
+      requestAnimationFrame(() => {
+        document
+          .getElementById(`assistant-message-${target.id}`)
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      return;
+    }
+
     requestAnimationFrame(() => {
       scrollRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
     });
@@ -237,14 +253,15 @@ export function AssistantPanel({
         <ScrollArea className="min-h-0 flex-1">
           <div className="space-y-3 px-4 py-4">
             {messages.map((message) => (
-              <AssistantMessageRenderer
-                key={message.id}
-                message={message}
-                activeComposeMessageId={activeComposeMessageId}
-                composeDraft={composeDraft}
-                onComposeDraftChange={onComposeDraftChange}
-                onComposeSend={onComposeSend}
-              />
+              <div key={message.id} id={`assistant-message-${message.id}`}>
+                <AssistantMessageRenderer
+                  message={message}
+                  activeComposeMessageId={activeComposeMessageId}
+                  composeDraft={composeDraft}
+                  onComposeDraftChange={onComposeDraftChange}
+                  onComposeSend={onComposeSend}
+                />
+              </div>
             ))}
 
             {typingAssistantText !== null ? (

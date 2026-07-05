@@ -4,10 +4,10 @@ import DOMPurify from "isomorphic-dompurify";
 import { useMemo } from "react";
 
 const plainTextClassName =
-  "whitespace-pre-wrap break-words text-[15px] leading-7 text-foreground/90 [overflow-wrap:anywhere]";
+  "whitespace-pre-wrap break-words text-[15px] leading-7 text-foreground/90 [overflow-wrap:anywhere] dark:text-neutral-800";
 
 const htmlBodyClassName =
-  "email-html-body max-w-none text-[15px] leading-7 text-foreground/90 [overflow-wrap:anywhere]";
+  "email-html-body max-w-none text-[15px] leading-7 text-foreground/90 [overflow-wrap:anywhere] dark:text-neutral-800";
 
 interface MessageBodyProps {
   bodyHtml?: string;

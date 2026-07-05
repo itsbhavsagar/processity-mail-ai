@@ -79,11 +79,6 @@ const defaultMailContext: AssistantMailContext = {
   conversation: null,
 };
 
-// "open ..." commands (e.g. "open the latest email from Claude") should open
-// the first search result automatically. The model emits search_emails for
-// these, so intent is read from the leading verb of the user's message. Kept
-// conservative: only a leading "open" counts, so "show/find/read emails" and
-// "open Drafts/Sent" (which emit navigate_mailbox) are never affected.
 function isOpenEmailIntent(message: string): boolean {
   return /^\s*open\b/i.test(message);
 }
@@ -330,8 +325,6 @@ export function AssistantProvider({
           createRichMessage({ type: "email_list", query, threads, mailbox }),
         ]);
 
-        // "open ..." commands auto-open the first result, reusing this search
-        // (no second Gmail query). Plain searches leave the reading pane as-is.
         if (openIntent && threads.length > 0) {
           router.push(buildMailboxUrl(mailbox, threads[0].id));
         }

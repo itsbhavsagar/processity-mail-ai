@@ -1,8 +1,9 @@
 "use client";
 
 import { signOut } from "next-auth/react";
+import { useTheme } from "next-themes";
 import { useState } from "react";
-import { FiChevronDown, FiLogOut } from "react-icons/fi";
+import { FiChevronDown, FiLogOut, FiMoon, FiSun } from "react-icons/fi";
 
 import { cn } from "@/shared/lib/utils";
 import {
@@ -41,12 +42,21 @@ function getInitials(user: UserProfileMenuUser): string {
 
 export function UserProfileMenu({ user }: UserProfileMenuProps) {
   const [open, setOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
   const displayName = user.name?.trim() || user.email?.trim() || "Account";
   const email = user.email?.trim() ?? "";
 
   const handleSignOut = () => {
     void signOut({ callbackUrl: "/login" });
   };
+
+  const themeButtonClass = (active: boolean) =>
+    cn(
+      "flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
+      active
+        ? "bg-accent text-accent-foreground"
+        : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+    );
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -86,7 +96,7 @@ export function UserProfileMenu({ user }: UserProfileMenuProps) {
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuLabel className="font-normal md:hidden">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">{displayName}</p>
@@ -99,6 +109,29 @@ export function UserProfileMenu({ user }: UserProfileMenuProps) {
         </DropdownMenuLabel>
 
         <DropdownMenuSeparator className="md:hidden" />
+
+        <div className="flex items-center gap-1 p-1">
+          <button
+            type="button"
+            onClick={() => setTheme("light")}
+            aria-pressed={theme === "light"}
+            className={themeButtonClass(theme === "light")}
+          >
+            <FiSun className="size-3.5" aria-hidden />
+            Light
+          </button>
+          <button
+            type="button"
+            onClick={() => setTheme("dark")}
+            aria-pressed={theme === "dark"}
+            className={themeButtonClass(theme === "dark")}
+          >
+            <FiMoon className="size-3.5" aria-hidden />
+            Dark
+          </button>
+        </div>
+
+        <DropdownMenuSeparator />
 
         <DropdownMenuItem onSelect={handleSignOut} className="gap-2">
           <FiLogOut className="size-4" aria-hidden />

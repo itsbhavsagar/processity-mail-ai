@@ -172,5 +172,4 @@ export async function POST(request: Request) {
   await updateHistoryId(emailAddress, history.historyId);
 
   return new Response(null, { status: 204 });
-  
 }

@@ -1,12 +1,10 @@
-import { NextResponse, type NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
-
-import { authSecret } from "@/features/auth/server/auth-config";
+import { NextResponse, type NextRequest } from "next/server";
 
 export default async function proxy(request: NextRequest) {
   const token = await getToken({
     req: request,
-    secret: authSecret,
+    secret: process.env.NEXTAUTH_SECRET,
   });
 
   const isAuthenticated = Boolean(token);

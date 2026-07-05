@@ -2,6 +2,7 @@
 
 import { AssistantEmailCard } from "@/features/assistant/components/rich/assistant-email-card";
 import { AssistantEmailList } from "@/features/assistant/components/rich/assistant-email-list";
+import { AssistantFilterCard } from "@/features/assistant/components/rich/assistant-filter-card";
 import type { AssistantRichContent } from "@/features/assistant/types/assistant-rich-content";
 
 interface AssistantRichContentRendererProps {
@@ -21,6 +22,8 @@ export function AssistantRichContentRenderer({
       return <AssistantEmailCard content={content} />;
     case "email_list":
       return <AssistantEmailList content={content} />;
+    case "filter":
+      return <AssistantFilterCard content={content} />;
     default:
       return null;
   }

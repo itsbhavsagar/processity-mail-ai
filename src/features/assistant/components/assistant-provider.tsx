@@ -79,6 +79,15 @@ const defaultMailContext: AssistantMailContext = {
   conversation: null,
 };
 
+// "open ..." commands (e.g. "open the latest email from Claude") should open
+// the first search result automatically. The model emits search_emails for
+// these, so intent is read from the leading verb of the user's message. Kept
+// conservative: only a leading "open" counts, so "show/find/read emails" and
+// "open Drafts/Sent" (which emit navigate_mailbox) are never affected.
+function isOpenEmailIntent(message: string): boolean {
+  return /^\s*open\b/i.test(message);
+}
+
 type AssistantContextValue = {
   activeSearchQuery: string | null;
   searchDisplayLabel: string | null;
@@ -146,6 +155,7 @@ export function AssistantProvider({
   const composeDraftRef = useRef<AssistantDraft>(emptyComposeDraft);
   const fillAnimationTimersRef = useRef<number[]>([]);
   const assistantMessagesRef = useRef<AssistantChatMessage[]>([]);
+  const pendingOpenIntentRef = useRef(false);
 
   useEffect(() => {
     composeDraftRef.current = composeDraft;
@@ -303,20 +313,31 @@ export function AssistantProvider({
 
   const applySearchAndShowResults = useCallback(
     async ({ query }: SearchEmailsPayload) => {
+      const openIntent = pendingOpenIntentRef.current;
+      pendingOpenIntentRef.current = false;
+
       const threads = await executeSearch(query);
       if (threads) {
+        const mailbox = mailContextRef.current.mailbox;
         setAssistantMessages((current) => [
           ...current,
           createRichMessage({
-            type: "email_list",
+            type: "filter",
+            mailbox,
             query,
-            threads,
-            mailbox: mailContextRef.current.mailbox,
+            count: threads.length,
           }),
+          createRichMessage({ type: "email_list", query, threads, mailbox }),
         ]);
+
+        // "open ..." commands auto-open the first result, reusing this search
+        // (no second Gmail query). Plain searches leave the reading pane as-is.
+        if (openIntent && threads.length > 0) {
+          router.push(buildMailboxUrl(mailbox, threads[0].id));
+        }
       }
     },
-    [executeSearch],
+    [executeSearch, router],
   );
 
   const openEmail = useCallback(
@@ -709,6 +730,8 @@ export function AssistantProvider({
       if (!trimmed || assistantLoading || assistantBusy) {
         return;
       }
+
+      pendingOpenIntentRef.current = isOpenEmailIntent(trimmed);
 
       setAssistantMessages((current) => [
         ...current,

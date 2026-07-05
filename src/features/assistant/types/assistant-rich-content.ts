@@ -17,8 +17,9 @@ export interface AssistantEmailListCard {
 
 export interface AssistantFilterCard {
   type: "filter";
-  summary: string;
-  query?: string;
+  mailbox: MailboxId;
+  query: string;
+  count: number;
 }
 
 export interface AssistantConfirmationCard {

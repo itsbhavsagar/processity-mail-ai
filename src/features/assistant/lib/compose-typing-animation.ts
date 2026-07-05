@@ -181,22 +181,3 @@ export function runDraftTypingAnimation(
 
   runReplyDraftAnimation(target, schedule, onStep, onComplete);
 }
-
-/** @deprecated Use runDraftTypingAnimation */
-export function runComposeTypingAnimation(
-  target: ComposeDraft,
-  schedule: AnimationSchedule,
-  onStep: (draft: ComposeDraft, status: AssistantComposeDraftStatus) => void,
-  onComplete: () => void,
-) {
-  runDraftTypingAnimation(
-    target,
-    schedule,
-    (draft, status) => {
-      if (isComposeDraft(draft)) {
-        onStep(draft, status);
-      }
-    },
-    onComplete,
-  );
-}

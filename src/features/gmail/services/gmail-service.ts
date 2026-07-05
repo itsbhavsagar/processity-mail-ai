@@ -211,10 +211,6 @@ export async function watchMailbox(
   };
 }
 
-export async function stopWatch(accessToken: string): Promise<void> {
-  await gmailFetch<void>("/stop", accessToken, { method: "POST" });
-}
-
 interface GmailHistoryResponse {
   history?: Array<{
     messagesAdded?: Array<{

@@ -42,7 +42,3 @@ export function publish(email: string, event: InboxEvent): void {
     listener(event);
   }
 }
-
-export function subscriberCount(email: string): number {
-  return subscribers.get(email)?.size ?? 0;
-}

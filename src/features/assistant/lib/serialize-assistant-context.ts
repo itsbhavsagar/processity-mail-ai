@@ -20,6 +20,15 @@ export function serializeAssistantContextForPrompt(
   lines.push(`hasActiveDraft=${context.hasActiveDraft ? 1 : 0}`);
   lines.push(`todayEpochSeconds=${context.todayEpochSeconds}`);
 
+  const today = new Date();
+
+  lines.push(`todayDate=${today.toISOString().slice(0, 10)}`);
+  lines.push(
+    `todayWeekday=${today.toLocaleDateString("en-US", {
+      weekday: "long",
+    })}`,
+  );
+
   if (context.currentConversation) {
     const { threadId, sender, subject, to, cc, sentAt, body } =
       context.currentConversation;
@@ -56,7 +65,9 @@ export function serializeAssistantContextForPrompt(
 
   if (context.searchResults?.length) {
     const packed = context.searchResults
-      .map((result) => packFields([result.threadId, result.from, result.subject]))
+      .map((result) =>
+        packFields([result.threadId, result.from, result.subject]),
+      )
       .join(";");
     lines.push(`searchResults=${packed}`);
   }

@@ -1,7 +1,7 @@
-import type { AssistantContext } from "@/features/assistant/types/assistant-action";
 import { serializeAssistantContextForPrompt } from "@/features/assistant/lib/serialize-assistant-context";
+import type { AssistantContext } from "@/features/assistant/types/assistant-action";
 
-export const PROMPT_VERSION = "6";
+export const PROMPT_VERSION = "7";
 
 export const ACKNOWLEDGEMENT_PHRASES = [
   "ok",
@@ -78,7 +78,29 @@ search:
 - clarify only after search if still ambiguous
 - operators: from:, to:, cc:, subject:, is:unread, is:read, has:attachment, filename:
 - today -> after:<todayEpochSeconds>, copied exactly from context — never recalculate or reformat it
-- other relative dates: newer_than/older_than use d/m/y only, never w — yesterday=(newer_than:2d older_than:1d), this week=7d, this month=1m, this year=1y
+
+- use todayDate and todayWeekday from context when interpreting natural-language dates like Monday, Tuesday, last Friday, tomorrow, etc.
+
+- weekdays (Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday) -> convert to Gmail date filters using after:YYYY/MM/DD before:YYYY/MM/DD for the matching calendar day from context; never search for the weekday name as plain text
+- "today" MUST ALWAYS generate:
+  after:<todayEpochSeconds>
+
+- "yesterday" MUST ALWAYS generate:
+  newer_than:2d older_than:1d
+
+- "this week" MUST ALWAYS generate:
+  newer_than:7d
+
+- "this month" MUST ALWAYS generate:
+  newer_than:1m
+
+- "this year" MUST ALWAYS generate:
+  newer_than:1y
+
+- NEVER generate:
+  newer_than:1d older_than:1d
+  for "yesterday"
+
 - absolute dates: after:YYYY/MM/DD, before:YYYY/MM/DD — never mix with newer_than/older_than
 - never generate: newer_than:1w, older_than:2026-01-01, newer_than:2026/01/01, after:1m, newer_than:0d, newer_than:1d for "today"
 - e.g. "read emails" -> is:read; "today's emails" -> after:<todayEpochSeconds>; "unread this week" -> is:unread newer_than:7d; "unread from Anthropic this month" -> from:anthropic is:unread newer_than:1m; "before January 2026" -> before:2026/01/01; "after January 2026" -> after:2026/01/01; "PDF invoices before January 2026" -> invoice has:attachment filename:pdf before:2026/01/01
@@ -124,6 +146,12 @@ User: Send email to john@example.com subject Meeting body Let's meet at 3pm.
 
 User: Show emails from the last 10 days
 {"thought":"Searching your mailbox.","requiresConfirmation":false,"actions":[{"type":"search_emails","payload":{"query":"newer_than:10d"}}]}
+
+User: Show me emails from yesterday
+{"thought":"Searching your mailbox.","requiresConfirmation":false,"actions":[{"type":"search_emails","payload":{"query":"newer_than:2d older_than:1d"}}]}
+
+User: Show me emails from Monday
+{"thought":"Searching your mailbox.","requiresConfirmation":false,"actions":[{"type":"search_emails","payload":{"query":"after:2026/07/06 before:2026/07/07"}}]}
 
 User: Take me to Sent
 {"thought":"Opening your Sent mailbox.","requiresConfirmation":false,"actions":[{"type":"navigate_mailbox","payload":{"mailbox":"sent"}}]}

@@ -7,13 +7,38 @@ import type { AssistantFilterCard as AssistantFilterCardContent } from "@/featur
 import { getMailboxById } from "@/shared/constants";
 import { Badge } from "@/shared/ui";
 
+// function formatQuery(query: string) {
+//   return query;
+// }
+
+function formatQuery(query: string) {
+  return query
+    .replace(/after:\d+/g, "Today")
+    .replace(/newer_than:(\d+)d/g, "Last $1 days")
+    .replace(/newer_than:1m/g, "Last month")
+    .replace(/newer_than:1y/g, "Last year")
+    .replace(/older_than:(\d+)d/g, "Older than $1 days")
+    .replace(/is:unread/g, "Unread")
+    .replace(/is:read/g, "Read")
+    .replace(/has:attachment/g, "Attachments")
+    .replace(/filename:pdf/g, "PDF")
+    .replace(/label:sent/g, "Sent")
+    .replace(/label:drafts/g, "Drafts")
+    .replace(/label:trash/g, "Trash")
+    .replace(/from:(\S+)/g, "From $1")
+    .replace(/to:(\S+)/g, "To $1")
+    .replace(/cc:(\S+)/g, "CC $1")
+    .replace(/subject:(.+)/g, "Subject: $1");
+}
+
 export function AssistantFilterCard({
   content,
 }: {
   content: AssistantFilterCardContent;
 }) {
   const mailboxLabel = getMailboxById(content.mailbox).label;
-  const query = content.query.trim();
+  // const query = content.query.trim();
+  const query = formatQuery(content.query.trim());
 
   return (
     <AssistantCard
@@ -30,9 +55,9 @@ export function AssistantFilterCard({
           {mailboxLabel}
         </Badge>
         {query ? (
-          <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground/80">
+          <span className="rounded bg-muted px-2 py-1 text-xs text-foreground/80">
             {query}
-          </code>
+          </span>
         ) : null}
       </div>
     </AssistantCard>

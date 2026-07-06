@@ -5,14 +5,8 @@ import { googleProvider } from "@/features/auth/services/google-provider";
 import { upsertUser } from "@/features/gmail/server/gmail-sync.repository";
 import { registerWatch } from "@/features/gmail/server/gmail-watch";
 
-export const authSecret = process.env.NEXTAUTH_SECRET;
-
-if (!authSecret) {
-  throw new Error("NEXTAUTH_SECRET is not configured.");
-}
-
 export const authConfig = {
-  secret: authSecret,
+  secret: process.env.NEXTAUTH_SECRET,
   providers: [googleProvider],
   session: {
     strategy: "jwt",

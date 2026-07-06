@@ -1,0 +1,38 @@
+# Keep the build context small and — critically — keep secrets out of the image.
+# Anything matched here is never sent to the Docker daemon or copied by `COPY . .`.
+
+# Secrets: never bake env files into an image.
+.env
+.env.*
+!.env.example
+
+# Dependencies / build artifacts (reinstalled/rebuilt inside the image).
+node_modules
+.next
+out
+build
+coverage
+
+# VCS / tooling / local noise.
+.git
+.gitignore
+.github
+.vscode
+.idea
+.claude
+*.log
+npm-debug.log*
+.DS_Store
+
+# Tests and docs — not needed at runtime.
+tests
+jest.config.js
+**/*.test.ts
+README*.md
+ARCHITECTURE*.md
+
+# Deployment files don't need to be inside the image.
+Dockerfile
+.dockerignore
+docker-compose.yml
+deploy

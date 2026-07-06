@@ -1,39 +1,20 @@
 "use client";
 
-import DOMPurify from "isomorphic-dompurify";
-import { useMemo } from "react";
+import { EmailHtmlFrame } from "./email-html-frame";
 
+// Plain-text fallback (emails with no HTML part). Rendered on the same white
+// sheet as HTML emails so both look consistent.
 const plainTextClassName =
-  "whitespace-pre-wrap break-words text-[15px] leading-7 text-foreground/90 [overflow-wrap:anywhere] dark:text-neutral-800";
-
-const htmlBodyClassName =
-  "email-html-body max-w-none text-[15px] leading-7 text-foreground/90 [overflow-wrap:anywhere] dark:text-neutral-800";
+  "whitespace-pre-wrap break-words px-4 py-4 text-[14px] leading-6 text-neutral-800 [overflow-wrap:anywhere]";
 
 interface MessageBodyProps {
   bodyHtml?: string;
   bodyText?: string;
 }
 
-function sanitizeEmailHtml(html: string): string {
-  return DOMPurify.sanitize(html, {
-    USE_PROFILES: { html: true },
-    ADD_ATTR: ["target", "rel"],
-  });
-}
-
 export function MessageBody({ bodyHtml, bodyText }: MessageBodyProps) {
-  const sanitizedHtml = useMemo(
-    () => (bodyHtml ? sanitizeEmailHtml(bodyHtml) : null),
-    [bodyHtml],
-  );
-
-  if (sanitizedHtml) {
-    return (
-      <div
-        className={htmlBodyClassName}
-        dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
-      />
-    );
+  if (bodyHtml) {
+    return <EmailHtmlFrame html={bodyHtml} />;
   }
 
   if (bodyText) {

@@ -1,14 +1,35 @@
-import type { AssistantContext, AssistantSearchResult } from "@/features/assistant/types/assistant-action";
 import { toActiveDraftContext } from "@/features/assistant/lib/assistant-message-utils";
-import type { MailConversation } from "@/features/mail/types/mail-conversation";
-import type { MailThread } from "@/features/mail/types/mail-thread";
-import type { AssistantDraft } from "@/features/mail/types/compose-draft";
-import { formatMailbox, getMailboxDisplayName } from "@/features/mail/lib/parse-mailbox";
+import type {
+  AssistantContext,
+  AssistantSearchResult,
+} from "@/features/assistant/types/assistant-action";
 import { startOfLocalDayEpochSeconds } from "@/features/mail/lib/build-gmail-query";
+import { htmlToPlainText } from "@/features/mail/lib/html-to-text";
+import {
+  formatMailbox,
+  getMailboxDisplayName,
+} from "@/features/mail/lib/parse-mailbox";
+import type { AssistantDraft } from "@/features/mail/types/compose-draft";
+import type { MailConversation } from "@/features/mail/types/mail-conversation";
+import type { MailMessage } from "@/features/mail/types/mail-message";
+import type { MailThread } from "@/features/mail/types/mail-thread";
 import type { MailboxId } from "@/shared/constants";
 
 export const MAX_SEARCH_RESULTS = 5;
 export const MAX_CONVERSATION_BODY_LENGTH = 1200;
+
+function resolveConversationBody(message?: MailMessage): string {
+  const text = message?.bodyText?.trim();
+  if (text) {
+    return text;
+  }
+
+  if (message?.bodyHtml) {
+    return htmlToPlainText(message.bodyHtml);
+  }
+
+  return "";
+}
 
 export type AssistantMailContext = {
   mailbox: MailboxId;
@@ -17,7 +38,9 @@ export type AssistantMailContext = {
   currentUserEmail?: string;
 };
 
-export function toSearchResults(threads: MailThread[]): AssistantSearchResult[] {
+export function toSearchResults(
+  threads: MailThread[],
+): AssistantSearchResult[] {
   return threads.map((thread) => ({
     threadId: thread.id,
     from: thread.sender,
@@ -58,7 +81,7 @@ export function buildAssistantContext(options: {
       to: latestMessage ? latestMessage.to.map(formatMailbox).join(", ") : "",
       cc: latestMessage ? latestMessage.cc.map(formatMailbox).join(", ") : "",
       sentAt: latestMessage?.sentAt ?? "",
-      body: (latestMessage?.bodyText ?? "").slice(
+      body: resolveConversationBody(latestMessage).slice(
         0,
         MAX_CONVERSATION_BODY_LENGTH,
       ),

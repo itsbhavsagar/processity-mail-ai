@@ -29,7 +29,7 @@ export function ConversationMessages({
             currentUserEmail={currentUserEmail}
           />
 
-          <div className="mt-4 min-w-0 max-w-full overflow-hidden rounded-lg border border-border/50 bg-muted/20 px-4 py-4 sm:px-5 sm:py-5 dark:border-neutral-200 dark:bg-white">
+          <div className="mt-4 min-w-0 max-w-full overflow-hidden rounded-lg border border-border/50 bg-white dark:border-neutral-200">
             <MessageBody
               bodyHtml={message.bodyHtml}
               bodyText={message.bodyText}

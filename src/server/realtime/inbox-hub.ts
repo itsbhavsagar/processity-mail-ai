@@ -17,6 +17,10 @@ export function subscribe(email: string, listener: InboxListener): () => void {
 
   listeners.add(listener);
 
+  console.log(
+    `[realtime] hub.subscribe email=${email} listenersForEmail=${listeners.size}`,
+  ); // TEMP DIAGNOSTIC
+
   return () => {
     const current = subscribers.get(email);
     if (!current) {
@@ -33,6 +37,10 @@ export function subscribe(email: string, listener: InboxListener): () => void {
 
 export function publish(email: string, event: InboxEvent): void {
   const listeners = subscribers.get(email);
+
+  console.log(
+    `[realtime] hub.publish email=${email} type=${event.type} subscribers=${listeners?.size ?? 0} knownEmails=${[...subscribers.keys()].join(",")}`,
+  ); // TEMP DIAGNOSTIC
 
   if (!listeners) {
     return;

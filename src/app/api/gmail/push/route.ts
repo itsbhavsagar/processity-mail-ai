@@ -80,7 +80,10 @@ function decodeNotification(body: PubSubPushBody): GmailNotification | null {
 }
 
 export async function POST(request: Request) {
+  console.log("[realtime] push: request received"); // TEMP DIAGNOSTIC
+
   if (!(await isVerifiedPubSubRequest(request))) {
+    console.warn("[realtime] push: OIDC/auth check failed -> 401"); // TEMP DIAGNOSTIC
     return new Response("Unauthorized", { status: 401 });
   }
 
@@ -94,12 +97,19 @@ export async function POST(request: Request) {
   const notification = decodeNotification(body);
   const emailAddress = notification?.emailAddress;
 
+  console.log(
+    `[realtime] push: decoded notification email=${emailAddress ?? "none"} historyId=${notification?.historyId ?? "none"}`,
+  ); // TEMP DIAGNOSTIC
+
   if (!emailAddress) {
     return new Response("Bad Request", { status: 400 });
   }
 
   const record = await findByEmail(emailAddress);
   if (!record) {
+    console.warn(
+      `[realtime] push: no GmailSync record for ${emailAddress} (ack + drop)`,
+    ); // TEMP DIAGNOSTIC
     // Unknown mailbox — ack so Pub/Sub stops redelivering.
     return new Response(null, { status: 204 });
   }
@@ -152,6 +162,10 @@ export async function POST(request: Request) {
       const metadata = await getMessageMetadata(accessToken, newest.id);
       await updateHistoryId(emailAddress, history.historyId);
 
+      console.log(
+        `[realtime] push: publishing inbox-changed email=${emailAddress} thread=${metadata.threadId}`,
+      ); // TEMP DIAGNOSTIC
+
       publish(emailAddress, {
         type: "inbox-changed",
         threadId: metadata.threadId,
@@ -169,6 +183,9 @@ export async function POST(request: Request) {
     }
   }
 
+  console.log(
+    `[realtime] push: history had no added messages for ${emailAddress} (nothing to publish)`,
+  ); // TEMP DIAGNOSTIC
   await updateHistoryId(emailAddress, history.historyId);
 
   return new Response(null, { status: 204 });

@@ -58,6 +58,7 @@ export const authConfig = {
           refreshToken,
         });
         await registerWatch(email, accessToken);
+        console.log(`[realtime] signIn: Gmail watch registered for ${email}`); // TEMP DIAGNOSTIC
       } catch (error) {
         console.error(
           `[gmail-watch] Watch registration failed for ${email}; sign-in continues. ` +

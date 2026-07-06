@@ -54,7 +54,12 @@ export async function GET(request: Request) {
         }
       };
 
+      console.log(`[realtime] stream: SSE connected email=${email}`); // TEMP DIAGNOSTIC
+
       unsubscribe = subscribe(email, (event) => {
+        console.log(
+          `[realtime] stream: forwarding ${event.type} to email=${email}`,
+        ); // TEMP DIAGNOSTIC
         send(`event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`);
       });
 
@@ -73,6 +78,9 @@ export async function GET(request: Request) {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
+      // Disable proxy buffering (Render/Nginx). Without this, SSE frames are
+      // buffered upstream and never reach the browser until the stream ends.
+      "X-Accel-Buffering": "no",
     },
   });
 }

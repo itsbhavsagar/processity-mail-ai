@@ -41,7 +41,14 @@ export function useInboxLiveSync({
   useEffect(() => {
     const source = new EventSource("/api/gmail/stream");
 
+    source.onopen = () =>
+      console.log("[realtime] client: SSE connection open"); // TEMP DIAGNOSTIC
+    source.onerror = (event) =>
+      console.warn("[realtime] client: SSE error/disconnect", event); // TEMP DIAGNOSTIC
+
     const handleInboxChanged = (event: MessageEvent<string>) => {
+      console.log("[realtime] client: inbox-changed event received", event.data); // TEMP DIAGNOSTIC
+
       let payload: InboxChangedPayload;
       try {
         payload = JSON.parse(event.data) as InboxChangedPayload;

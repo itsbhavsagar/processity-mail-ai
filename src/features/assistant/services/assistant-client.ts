@@ -8,6 +8,13 @@ import type {
   AssistantResponse,
 } from "@/features/assistant/types/assistant-action";
 
+/**
+ * What `/api/assistant` returns: the validated model output plus response
+ * metadata. `model` is deliberately NOT part of `assistantResponseSchema` —
+ * that schema validates what the LLM itself produces.
+ */
+export type AssistantApiResponse = AssistantResponse & { model?: string };
+
 export class AssistantClientError extends Error {
   readonly code: AssistantApiErrorBody["error"];
 
@@ -20,7 +27,7 @@ export class AssistantClientError extends Error {
 
 export async function requestAssistantResponse(
   request: AssistantRequest,
-): Promise<AssistantResponse> {
+): Promise<AssistantApiResponse> {
   const response = await fetch("/api/assistant", {
     method: "POST",
     headers: {
@@ -29,7 +36,9 @@ export async function requestAssistantResponse(
     body: JSON.stringify(request),
   });
 
-  const body = (await response.json()) as AssistantResponse | AssistantApiErrorBody;
+  const body = (await response.json()) as
+    | AssistantApiResponse
+    | AssistantApiErrorBody;
 
   if (!response.ok || "error" in body) {
     const errorBody = body as AssistantApiErrorBody;

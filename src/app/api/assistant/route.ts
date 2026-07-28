@@ -8,6 +8,7 @@ import {
 import {
   AssistantServiceError,
   generateAssistantResponse,
+  resolveAssistantModel,
 } from "@/features/assistant/services/assistant-service";
 import {
   assistantRequestSchema,
@@ -71,7 +72,10 @@ export async function POST(request: Request) {
 
   try {
     const result = await generateAssistantResponse(parsed.data);
-    return NextResponse.json(result);
+
+    // `model` is response metadata, not part of the model's own JSON output —
+    // the client uses it to invalidate cached responses after a model swap.
+    return NextResponse.json({ ...result, model: resolveAssistantModel() });
   } catch (error) {
     if (error instanceof AssistantServiceError) {
       const status =

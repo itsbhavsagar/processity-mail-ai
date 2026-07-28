@@ -6,20 +6,26 @@ Gmail is the real mail provider — OAuth, real sends, real threads, real-time p
 
 ## Demo
 
+<<<<<<< HEAD
 <p align="center">
   <img src="./public/commandmail.gif" alt="CommandMail Demo"/>
 </p>
 
+=======
+>>>>>>> 992a080 ((Fix): Updated AI Modal as prevous one was decommissioned by GROQ.)
 **Video walkthrough:** https://drive.google.com/file/d/1ECoE5GQhcLqfMRSrh8F1VlYsIUuNiPNA/view?usp=sharing
 
 **Live demo:** https://processity-mail-ai-q3n7.onrender.com/login
 
+<<<<<<< HEAD
 > **Note**
 
 >
 
 > Since the application uses Google's OAuth verification flow, first-time sign-in may display Google's standard "This app isn't verified" warning because the app is in testing mode. Click **Advanced → Continue** to proceed. This is expected for the assignment deployment.
 
+=======
+>>>>>>> 992a080 ((Fix): Updated AI Modal as prevous one was decommissioned by GROQ.)
 ## Why this exists
 
 The brief asks for a mail app whose AI _controls the interface_ rather than replying about it. The obvious-but-wrong way to build that is to give the model its own path to the mailbox and the DOM — a second, privileged actor sitting next to the user. That is powerful and unsafe: the assistant could do things the UI can't, and you can no longer reason about what any given message might trigger.
@@ -124,7 +130,11 @@ The assistant and the manual UI converge on the same Server Actions and the same
 | Framework | Next.js 16 (App Router), React 19, TypeScript                       |
 | Styling   | Tailwind CSS v4, shadcn/ui, Radix UI                                |
 | Auth      | Auth.js (`next-auth@4`), Google OAuth                               |
+<<<<<<< HEAD
 | AI        | Groq (`llama-4-scout-17b-16e-instruct`), Zod-validated JSON         |
+=======
+| AI        | Groq (`openai/gpt-oss-120b`), Zod-validated JSON         |
+>>>>>>> 992a080 ((Fix): Updated AI Modal as prevous one was decommissioned by GROQ.)
 | Mail      | Gmail REST API via `fetch()` — no SDK                               |
 | Data      | Prisma + PostgreSQL (per-user sync state + encrypted refresh token) |
 | Realtime  | Gmail `users.watch` → Google Pub/Sub → SSE                          |

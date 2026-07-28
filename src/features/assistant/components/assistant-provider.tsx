@@ -813,7 +813,7 @@ export function AssistantProvider({
         });
 
         setAssistantLoading(false);
-        setCachedAssistantResponse(cacheKey, response);
+        setCachedAssistantResponse(cacheKey, response, response.model);
         processAssistantResponse(response);
       } catch (error) {
         const message =

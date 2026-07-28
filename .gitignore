@@ -48,3 +48,5 @@ ENGINEERING_GUIDELINES.md
 
 # Folders
 .claude
+# Local eval-run records (prompt version + model provenance)
+eval-runs/
